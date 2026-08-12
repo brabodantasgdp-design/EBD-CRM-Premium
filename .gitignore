@@ -16,3 +16,4 @@ coverage/
 *.tmp
 *.temp
 nexus-crm---dashboard-executivo.zip
+.vercel

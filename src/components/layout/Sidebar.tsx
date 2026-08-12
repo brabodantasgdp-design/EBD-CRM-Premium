@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   LayoutDashboard,
@@ -25,6 +26,7 @@ import {
 } from "lucide-react";
 import { MOCK_COMPANIES, MOCK_USER_PROFILE } from "../../data/mockCrmData";
 import { CompanyAccount } from "../../types/crm";
+import { OrganizationSwitcher } from "../auth/OrganizationSwitcher";
 import { useCRM } from "../../context/CRMContext";
 
 interface SidebarProps {
@@ -46,12 +48,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onMobileClose,
   leadsCount,
 }) => {
+  const router = useRouter();
   const { leads } = useCRM();
   const activeLeadsCount = leads.filter((lead) => !lead.archivedAt && !lead.archived).length;
   const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
-  const [selectedCompany, setSelectedCompany] = useState<CompanyAccount>(
-    MOCK_COMPANIES[0]
-  );
+  const [selectedCompany, setSelectedCompany] = useState<CompanyAccount>(MOCK_COMPANIES[0]);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const mainNavItems = [
@@ -141,7 +142,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Organization switcher demonstrativo. Na implementação real, a troca de organização deverá validar membership, permissões e isolamento de dados no backend/RLS. */}
-        {(!collapsed || mobileOpen) && (
+        {(!collapsed || mobileOpen) && <OrganizationSwitcher />}
+        {false && (!collapsed || mobileOpen) && (
           <div className="p-3 border-b border-slate-800/60 relative">
             <button
               onClick={() => setCompanyMenuOpen(!companyMenuOpen)}
@@ -321,7 +323,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 Preferências de Conta
               </button>
               <button
-                onClick={() => setUserMenuOpen(false)}
+                onClick={async () => {
+                  setUserMenuOpen(false);
+                  await fetch("/api/auth/logout", { method: "POST" });
+                  router.replace("/login");
+                  router.refresh();
+                }}
                 className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-rose-300 hover:bg-rose-500/20 rounded-lg transition-colors"
               >
                 <LogOut className="h-3.5 w-3.5" />
