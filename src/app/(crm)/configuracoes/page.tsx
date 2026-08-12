@@ -1,2 +1,2 @@
-import { AppContent } from "../../../App";
-export default function SettingsPage() { return <AppContent module="configuracoes" />; }
+import { SettingsPage } from "../../../components/settings/SettingsPage";
+export default function SettingsRoute() { return <SettingsPage />; }
