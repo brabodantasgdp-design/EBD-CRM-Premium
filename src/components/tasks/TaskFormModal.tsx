@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, Calendar, Clock, User, Tag, FileText, AlertCircle, Link } from "lucide-react";
 import { TaskItem } from "../../types/crm";
 import { useCRM } from "../../context/CRMContext";
+import { getLocalDateString } from "../../utils/formatters";
 
 export const MOCK_TASK_OWNERS = [
   { id: "usr-1", name: "Mariana Costa" },
@@ -55,7 +56,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
       setTitle(taskToEdit.title || "");
       setDescription(taskToEdit.description || "");
       setOwnerId(taskToEdit.ownerId || "usr-1");
-      setDueDate(taskToEdit.dueDate || new Date().toISOString().split("T")[0]);
+      setDueDate(taskToEdit.dueDate || getLocalDateString());
       setDueTime(taskToEdit.dueTime || "12:00");
       setPriority(taskToEdit.priority || "medium");
       setEntityType(taskToEdit.entityType || "none");
@@ -64,7 +65,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
       setTagsInput((taskToEdit.tags || []).join(", "));
     } else {
       // Default new task
-      const today = new Date().toISOString().split("T")[0];
+      const today = getLocalDateString();
       setTitle("");
       setDescription("");
       setOwnerId("usr-1");

@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { TaskItem } from "../../types/crm";
 import { useCRM } from "../../context/CRMContext";
+import { getLocalDateString } from "../../utils/formatters";
 import { TasksMetrics } from "./TasksMetrics";
 import { TaskFormModal, MOCK_TASK_OWNERS } from "./TaskFormModal";
 import { TasksBulkActions } from "./TasksBulkActions";
@@ -77,7 +78,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskItem | null>(null);
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = getLocalDateString();
 
   // Quick metric filter sync
   const handleSelectQuickFilter = (filterKey: string | null) => {

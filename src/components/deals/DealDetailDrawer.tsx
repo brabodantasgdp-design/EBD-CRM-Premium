@@ -28,12 +28,11 @@ import {
 } from "lucide-react";
 import {
   DealItem,
-  DealActivity,
-  DealTask,
   DealProduct,
   DealNote,
 } from "../../types/crm";
 import { useCRM } from "../../context/CRMContext";
+import { formatDateToISO, getLocalDateString } from "../../utils/formatters";
 
 interface DealDetailDrawerProps {
   isOpen: boolean;
@@ -56,7 +55,15 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
   onReopen,
   onArchiveDeal,
 }) => {
-  const { updateDeal } = useCRM();
+  const {
+    updateDeal,
+    addTask,
+    addActivity,
+    completeTask,
+    reopenTask,
+    getEntityTasks,
+    getEntityActivities,
+  } = useCRM();
   const [activeTab, setActiveTab] = useState<
     "overview" | "activities" | "tasks" | "products" | "notes" | "history"
   >("overview");
@@ -83,8 +90,16 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
 
   if (!isOpen || !deal) return null;
 
-  const activities = deal.activities || [];
-  const tasks = deal.tasks || [];
+  const activities = getEntityActivities("deal", deal.id).map((activity) => ({
+    ...activity,
+    authorName: activity.ownerName,
+    createdAt: activity.startAt.replace("T", " "),
+  }));
+  const tasks = getEntityTasks("deal", deal.id).map((task) => ({
+    ...task,
+    completed: task.status === "completed",
+    assigneeName: task.ownerName,
+  }));
   const products = deal.products || [];
   const notes = deal.notes || [];
   const stageHistory = deal.stageHistory || [];
@@ -111,20 +126,17 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
     e.preventDefault();
     if (!actTitle.trim()) return;
 
-    const newActivity: DealActivity = {
-      id: `act-${Date.now()}`,
-      type: actType,
+    addActivity({
+      type: actType === "followup" ? "follow_up" : actType,
       title: actTitle.trim(),
       description: actDesc.trim(),
-      authorName: deal.ownerName || "Mariana Costa",
-      createdAt: `${new Date().toLocaleDateString("pt-BR")} ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`,
-    };
-
-    const updatedActivities = [newActivity, ...activities];
-    updateDeal(deal.id, {
-      activities: updatedActivities,
-      lastActivityAt: new Date().toLocaleDateString("pt-BR"),
-      lastActivityText: actTitle.trim(),
+      ownerId: deal.ownerId || "usr-1",
+      ownerName: deal.ownerName || "Mariana Costa",
+      startAt: new Date().toISOString(),
+      status: "completed",
+      entityType: "deal",
+      entityId: deal.id,
+      entityName: deal.name,
     });
 
     setActTitle("");
@@ -136,20 +148,16 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
     e.preventDefault();
     if (!taskTitle.trim()) return;
 
-    const newTask: DealTask = {
-      id: `tsk-${Date.now()}`,
+    const priority = taskPriority === "alta" ? "high" : taskPriority === "baixa" ? "low" : "medium";
+    addTask({
       title: taskTitle.trim(),
-      dueDate: taskDueDate || new Date().toLocaleDateString("pt-BR"),
-      assigneeName: deal.ownerName || "Mariana Costa",
-      completed: false,
-      priority: taskPriority,
-    };
-
-    const updatedTasks = [newTask, ...tasks];
-    updateDeal(deal.id, {
-      tasks: updatedTasks,
-      nextTaskAt: newTask.dueDate,
-      nextTaskText: newTask.title,
+      dueDate: formatDateToISO(taskDueDate || getLocalDateString()),
+      ownerId: deal.ownerId || "usr-1",
+      ownerName: deal.ownerName || "Mariana Costa",
+      priority,
+      entityType: "deal",
+      entityId: deal.id,
+      entityName: deal.name,
     });
 
     setTaskTitle("");
@@ -157,16 +165,11 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
   };
 
   const handleToggleTask = (taskId: string) => {
-    const updatedTasks = tasks.map((t) =>
-      t.id === taskId ? { ...t, completed: !t.completed } : t
-    );
-
-    const pendingTask = updatedTasks.find((t) => !t.completed);
-    updateDeal(deal.id, {
-      tasks: updatedTasks,
-      nextTaskAt: pendingTask ? pendingTask.dueDate : undefined,
-      nextTaskText: pendingTask ? pendingTask.title : undefined,
-    });
+    const task = tasks.find((item) => item.id === taskId);
+    if (task) {
+      if (task.completed) reopenTask(taskId);
+      else completeTask(taskId);
+    }
   };
 
   // 3. Add Product Handler

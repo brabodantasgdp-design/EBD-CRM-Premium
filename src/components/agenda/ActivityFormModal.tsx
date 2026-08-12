@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { ActivityItem } from "../../types/crm";
 import { useCRM } from "../../context/CRMContext";
+import { getLocalDateString } from "../../utils/formatters";
 import { MOCK_TASK_OWNERS } from "../tasks/TaskFormModal";
 
 interface ActivityFormModalProps {
@@ -94,7 +95,7 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
       setEntityId(activityToEdit.entityId || "");
       setEntityName(activityToEdit.entityName || "");
     } else {
-      const defaultDate = initialDate || new Date().toISOString().split("T")[0];
+      const defaultDate = initialDate || getLocalDateString();
       const defaultStartTime = initialTime || "10:00";
       
       setType("meeting");

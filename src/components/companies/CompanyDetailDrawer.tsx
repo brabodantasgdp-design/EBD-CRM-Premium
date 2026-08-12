@@ -32,12 +32,13 @@ import {
   ContactDeal,
   ContactItem,
   CompanyActivity,
-  CompanyTask,
   CompanyNote,
 } from "../../types/crm";
 import { CompanyStatusBadge } from "./CompanyStatusBadge";
 import { COMPANY_STATUS_CONFIG } from "../../constants/companyStatus";
 import { MOCK_OWNERS } from "../../data/mockContactsData";
+import { useCRM } from "../../context/CRMContext";
+import { getLocalDateString } from "../../utils/formatters";
 
 interface CompanyDetailDrawerProps {
   company: CompanyItem;
@@ -64,13 +65,6 @@ export const CompanyDetailDrawer: React.FC<CompanyDetailDrawerProps> = ({
     "overview" | "contacts" | "deals" | "activities" | "tasks" | "notes"
   >("overview");
 
-  // Local state for interactive additions
-  const [activitiesList, setActivitiesList] = useState<CompanyActivity[]>(
-    company.activities || []
-  );
-  const [tasksList, setTasksList] = useState<CompanyTask[]>(
-    company.tasks || []
-  );
   const [notesList, setNotesList] = useState<CompanyNote[]>(
     company.notesList || []
   );
@@ -85,11 +79,31 @@ export const CompanyDetailDrawer: React.FC<CompanyDetailDrawerProps> = ({
 
   // New Task Form State
   const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [newTaskDueDate, setNewTaskDueDate] = useState("Amanhã");
-  const [newTaskPriority, setNewTaskPriority] = useState<CompanyTask["priority"]>("media");
+  const [newTaskDueDate, setNewTaskDueDate] = useState(getLocalDateString());
+  const [newTaskPriority, setNewTaskPriority] = useState<"alta" | "media" | "baixa">("media");
 
   // New Note Form State
   const [newNoteText, setNewNoteText] = useState("");
+
+  const {
+    addTask,
+    addActivity,
+    completeTask,
+    reopenTask,
+    getEntityTasks,
+    getEntityActivities,
+  } = useCRM();
+
+  const activities = getEntityActivities("company", company.id).map((activity) => ({
+    ...activity,
+    authorName: activity.ownerName,
+    createdAt: activity.startAt.replace("T", " "),
+  }));
+  const tasks = getEntityTasks("company", company.id).map((task) => ({
+    ...task,
+    completed: task.status === "completed",
+    assigneeName: task.ownerName,
+  }));
 
   // Filter linked contacts from shared contacts list
   const linkedContacts = sharedContacts.filter(
@@ -108,29 +122,21 @@ export const CompanyDetailDrawer: React.FC<CompanyDetailDrawerProps> = ({
     e.preventDefault();
     if (!newActTitle.trim()) return;
 
-    const newAct: CompanyActivity = {
-      id: `act-${Date.now()}`,
-      type: newActType,
+    addActivity({
+      type: newActType === "followup" ? "follow_up" : newActType,
       title: newActTitle.trim(),
       description: newActDesc.trim() || "Atividade registrada via Visão 360° da empresa.",
-      authorName: company.ownerName,
-      createdAt: "Hoje às " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-    };
-
-    const updatedActs = [newAct, ...activitiesList];
-    setActivitiesList(updatedActs);
+      ownerId: company.ownerId,
+      ownerName: company.ownerName,
+      startAt: new Date().toISOString(),
+      status: "completed",
+      entityType: "company",
+      entityId: company.id,
+      entityName: company.name,
+    });
     setNewActTitle("");
     setNewActDesc("");
 
-    // Update parent company
-    const updatedComp: CompanyItem = {
-      ...company,
-      activities: updatedActs,
-      lastActivityText: newAct.title,
-      daysWithoutActivity: 0,
-      updatedAt: "agora mesmo",
-    };
-    onUpdateCompany(updatedComp);
   };
 
   // Task submit
@@ -138,44 +144,27 @@ export const CompanyDetailDrawer: React.FC<CompanyDetailDrawerProps> = ({
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
 
-    const newTask: CompanyTask = {
-      id: `tsk-${Date.now()}`,
+    const priority = newTaskPriority === "alta" ? "high" : newTaskPriority === "baixa" ? "low" : "medium";
+    addTask({
       title: newTaskTitle.trim(),
       dueDate: newTaskDueDate,
-      assigneeName: company.ownerName,
-      completed: false,
-      priority: newTaskPriority,
-    };
-
-    const updatedTsks = [newTask, ...tasksList];
-    setTasksList(updatedTsks);
+      ownerId: company.ownerId,
+      ownerName: company.ownerName,
+      priority,
+      entityType: "company",
+      entityId: company.id,
+      entityName: company.name,
+    });
     setNewTaskTitle("");
-
-    // Update parent company
-    const updatedComp: CompanyItem = {
-      ...company,
-      tasks: updatedTsks,
-      nextTaskText: `${newTask.title} (${newTask.dueDate})`,
-      updatedAt: "agora mesmo",
-    };
-    onUpdateCompany(updatedComp);
   };
 
   // Toggle task completed
   const handleToggleTask = (taskId: string) => {
-    const updated = tasksList.map((t) =>
-      t.id === taskId ? { ...t, completed: !t.completed } : t
-    );
-    setTasksList(updated);
-
-    const pending = updated.filter((t) => !t.completed);
-    const nextText = pending.length > 0 ? `${pending[0].title} (${pending[0].dueDate})` : undefined;
-
-    onUpdateCompany({
-      ...company,
-      tasks: updated,
-      nextTaskText: nextText,
-    });
+    const task = tasks.find((item) => item.id === taskId);
+    if (task) {
+      if (task.completed) reopenTask(taskId);
+      else completeTask(taskId);
+    }
   };
 
   // Add Note submit
@@ -340,7 +329,7 @@ export const CompanyDetailDrawer: React.FC<CompanyDetailDrawerProps> = ({
             <Clock className="h-3.5 w-3.5" />
             <span>Atividades</span>
             <span className="px-1.5 py-0.2 bg-slate-200 text-slate-700 rounded-full text-[10px]">
-              {activitiesList.length}
+              {activities.length}
             </span>
           </button>
 
@@ -355,7 +344,7 @@ export const CompanyDetailDrawer: React.FC<CompanyDetailDrawerProps> = ({
             <CheckSquare className="h-3.5 w-3.5" />
             <span>Tarefas</span>
             <span className="px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded-full text-[10px]">
-              {tasksList.filter((t) => !t.completed).length}
+              {tasks.filter((t) => !t.completed).length}
             </span>
           </button>
 
@@ -711,11 +700,11 @@ export const CompanyDetailDrawer: React.FC<CompanyDetailDrawerProps> = ({
                 <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider">
                   Histórico e Linha do Tempo
                 </h4>
-                {activitiesList.length === 0 ? (
+                {activities.length === 0 ? (
                   <p className="text-slate-400 text-xs">Nenhuma atividade registrada.</p>
                 ) : (
                   <div className="relative pl-4 border-l-2 border-indigo-100 space-y-4">
-                    {activitiesList.map((act) => (
+                    {activities.map((act) => (
                       <div key={act.id} className="relative group">
                         <div className="absolute -left-[21px] top-1 h-3 w-3 rounded-full bg-indigo-600 border-2 border-white ring-2 ring-indigo-100" />
                         <div className="bg-white border border-slate-200 rounded-2xl p-3 shadow-2xs">
@@ -773,7 +762,7 @@ export const CompanyDetailDrawer: React.FC<CompanyDetailDrawerProps> = ({
                 <div className="flex items-center justify-between">
                   <select
                     value={newTaskPriority}
-                    onChange={(e) => setNewTaskPriority(e.target.value as CompanyTask["priority"])}
+                    onChange={(e) => setNewTaskPriority(e.target.value as "alta" | "media" | "baixa")}
                     className="px-3 py-1 bg-white border border-slate-200 rounded-xl font-bold text-xs"
                   >
                     <option value="alta">Prioridade Alta</option>
@@ -796,10 +785,10 @@ export const CompanyDetailDrawer: React.FC<CompanyDetailDrawerProps> = ({
                 <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider">
                   Lista de Tarefas da Empresa
                 </h4>
-                {tasksList.length === 0 ? (
+                {tasks.length === 0 ? (
                   <p className="text-slate-400 text-xs">Nenhuma tarefa agendada.</p>
                 ) : (
-                  tasksList.map((tsk) => (
+                  tasks.map((tsk) => (
                     <div
                       key={tsk.id}
                       className={`p-3 bg-white border rounded-2xl flex items-center justify-between gap-3 transition-colors ${

@@ -24,10 +24,11 @@ import {
   FilePlus,
   Info,
 } from "lucide-react";
-import { ContactItem, ContactActivity, ContactTask, ContactNote, ContactDeal } from "../../types/crm";
+import { ContactItem, ContactActivity, ContactNote, ContactDeal } from "../../types/crm";
 import { ContactStatusBadge } from "./ContactStatusBadge";
 import { CreateDealFromContactModal } from "./CreateDealFromContactModal";
 import { useCRM } from "../../context/CRMContext";
+import { getLocalDateString } from "../../utils/formatters";
 
 interface ContactDetailDrawerProps {
   contact: ContactItem;
@@ -59,35 +60,50 @@ export const ContactDetailDrawer: React.FC<ContactDetailDrawerProps> = ({
 
   // New Task form state
   const [taskTitle, setTaskTitle] = useState("");
-  const [taskDueDate, setTaskDueDate] = useState("Amanhã");
+  const [taskDueDate, setTaskDueDate] = useState(getLocalDateString());
   const [taskPriority, setTaskPriority] = useState<"alta" | "media" | "baixa">("alta");
 
   // New Note state
   const [newNoteContent, setNewNoteContent] = useState("");
+
+  const {
+    addTask,
+    addActivity,
+    completeTask,
+    reopenTask,
+    getEntityTasks,
+    getEntityActivities,
+  } = useCRM();
+
+  const activities = getEntityActivities("contact", contact.id).map((activity) => ({
+    ...activity,
+    authorName: activity.ownerName,
+    createdAt: activity.startAt.replace("T", " "),
+    relatedDealName: undefined,
+  }));
+  const tasks = getEntityTasks("contact", contact.id).map((task) => ({
+    ...task,
+    completed: task.status === "completed",
+    assigneeName: task.ownerName,
+  }));
 
   // Handlers
   const handleAddActivity = (e: React.FormEvent) => {
     e.preventDefault();
     if (!activityTitle.trim()) return;
 
-    const newActivity: ContactActivity = {
-      id: `act-${Date.now()}`,
-      type: activityType,
+    addActivity({
+      type: activityType === "followup" ? "follow_up" : activityType,
       title: activityTitle.trim(),
       description: activityDesc.trim(),
-      authorName: contact.ownerName,
-      createdAt: "Agora mesmo",
-    };
-
-    const updatedActivities = [newActivity, ...(contact.activities || [])];
-    const updatedContact = {
-      ...contact,
-      activities: updatedActivities,
-      lastActivityText: `${activityTitle} (${newActivity.createdAt})`,
-      updatedAt: "hoje",
-    };
-
-    onUpdateContact(updatedContact);
+      ownerId: contact.ownerId,
+      ownerName: contact.ownerName,
+      startAt: new Date().toISOString(),
+      status: "completed",
+      entityType: "contact",
+      entityId: contact.id,
+      entityName: contact.fullName,
+    });
     setActivityTitle("");
     setActivityDesc("");
     setShowAddActivityModal(false);
@@ -98,32 +114,27 @@ export const ContactDetailDrawer: React.FC<ContactDetailDrawerProps> = ({
     e.preventDefault();
     if (!taskTitle.trim()) return;
 
-    const newTask: ContactTask = {
-      id: `tsk-${Date.now()}`,
+    const priority = taskPriority === "alta" ? "high" : taskPriority === "baixa" ? "low" : "medium";
+    addTask({
       title: taskTitle.trim(),
       dueDate: taskDueDate,
-      assigneeName: contact.ownerName,
-      completed: false,
-      priority: taskPriority,
-    };
-
-    const updatedTasks = [newTask, ...(contact.tasks || [])];
-    const updatedContact = {
-      ...contact,
-      tasks: updatedTasks,
-      updatedAt: "hoje",
-    };
-
-    onUpdateContact(updatedContact);
+      ownerId: contact.ownerId,
+      ownerName: contact.ownerName,
+      priority,
+      entityType: "contact",
+      entityId: contact.id,
+      entityName: contact.fullName,
+    });
     setTaskTitle("");
     onShowToast("Tarefa criada para o contato!");
   };
 
   const handleToggleTask = (taskId: string) => {
-    const updatedTasks = (contact.tasks || []).map((t) =>
-      t.id === taskId ? { ...t, completed: !t.completed } : t
-    );
-    onUpdateContact({ ...contact, tasks: updatedTasks });
+    const task = tasks.find((item) => item.id === taskId);
+    if (task) {
+      if (task.completed) reopenTask(taskId);
+      else completeTask(taskId);
+    }
     onShowToast("Status da tarefa atualizado!");
   };
 
@@ -260,9 +271,9 @@ export const ContactDetailDrawer: React.FC<ContactDetailDrawerProps> = ({
               }`}
             >
               Atividades
-              {contact.activities && contact.activities.length > 0 && (
+              {activities.length > 0 && (
                 <span className="px-1.5 py-0.2 rounded-full bg-slate-800 text-[10px]">
-                  {contact.activities.length}
+                  {activities.length}
                 </span>
               )}
             </button>
@@ -290,9 +301,9 @@ export const ContactDetailDrawer: React.FC<ContactDetailDrawerProps> = ({
               }`}
             >
               Tarefas
-              {contact.tasks && contact.tasks.filter((t) => !t.completed).length > 0 && (
+              {tasks.filter((t) => !t.completed).length > 0 && (
                 <span className="px-1.5 py-0.2 rounded-full bg-indigo-950 text-indigo-300 text-[10px]">
-                  {contact.tasks.filter((t) => !t.completed).length}
+                  {tasks.filter((t) => !t.completed).length}
                 </span>
               )}
             </button>
@@ -484,7 +495,7 @@ export const ContactDetailDrawer: React.FC<ContactDetailDrawerProps> = ({
               </div>
 
               <div className="space-y-3">
-                {(contact.activities || []).map((act) => (
+                {activities.map((act) => (
                   <div key={act.id} className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
@@ -510,7 +521,7 @@ export const ContactDetailDrawer: React.FC<ContactDetailDrawerProps> = ({
                   </div>
                 ))}
 
-                {(!contact.activities || contact.activities.length === 0) && (
+                {activities.length === 0 && (
                   <p className="text-center py-8 text-slate-400 italic">
                     Nenhuma atividade registrada para este contato.
                   </p>
@@ -600,7 +611,7 @@ export const ContactDetailDrawer: React.FC<ContactDetailDrawerProps> = ({
 
               <div className="space-y-2">
                 <h5 className="font-bold text-slate-900 text-xs">Tarefas do Contato</h5>
-                {(contact.tasks || []).map((tsk) => (
+                {tasks.map((tsk) => (
                   <div
                     key={tsk.id}
                     className={`p-3 rounded-2xl border flex items-center justify-between gap-3 ${
@@ -624,7 +635,7 @@ export const ContactDetailDrawer: React.FC<ContactDetailDrawerProps> = ({
                   </div>
                 ))}
 
-                {(!contact.tasks || contact.tasks.length === 0) && (
+                {tasks.length === 0 && (
                   <p className="text-center py-6 text-slate-400 italic">
                     Nenhuma tarefa agendada.
                   </p>
