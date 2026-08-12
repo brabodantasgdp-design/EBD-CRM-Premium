@@ -775,6 +775,7 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
                   tasks.map((task) => (
                     <div
                       key={task.id}
+                      data-task-id={task.id}
                       className={`p-3 bg-white rounded-xl border flex items-center justify-between gap-3 transition-colors ${
                         task.completed
                           ? "bg-slate-50/60 border-slate-200 opacity-60"
