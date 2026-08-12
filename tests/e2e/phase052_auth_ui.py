@@ -44,7 +44,7 @@ def main():
         url, onboarded = login_and_onboard(page, env["E2E_OWNER_A_EMAIL"], env["E2E_OWNER_A_PASSWORD"], "Nexus Codex Org A")
         page.reload(wait_until="domcontentloaded")
         report["owner_a"] = {"dashboard": url.endswith("/dashboard"), "onboarded": onboarded, "refresh": page.url.endswith("/dashboard")}
-        page.locator("aside button").filter(has_text="Mariana Costa").click()
+        page.get_by_text("Mariana Costa", exact=True).first.click()
         page.get_by_role("button", name="Sair do sistema").click()
         page.wait_for_url("**/login", timeout=30000)
         report["logout"] = {"redirect_login": page.url.endswith("/login")}
