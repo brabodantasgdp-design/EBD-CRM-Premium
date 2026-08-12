@@ -25,7 +25,7 @@ export function SettingsPage() {
     setData(payload); setCompanyName(payload.organization.name); setError("");
   }
   useEffect(() => { void load(); }, []);
-  const canManage = useMemo(() => ["owner", "admin"].includes(data.currentRole ?? ""), [data.currentRole]);
+  const canManage = useMemo(() => ["owner", "admin"].includes(data?.currentRole ?? ""), [data?.currentRole]);
 
   async function updateCompany() {
     const response = await fetch("/api/settings/company", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: companyName, slug: data?.organization.slug }) });
