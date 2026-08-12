@@ -18,6 +18,7 @@ interface LeadBulkActionsProps {
   onBulkUpdateOwner: (ownerId: string) => void;
   onBulkUpdateStatus: (status: LeadStatus) => void;
   onBulkAddTag: (tag: string) => void;
+  onBulkRemoveTag: (tag: string) => void;
   onBulkCreateTask: () => void;
   onBulkExport: () => void;
   onBulkArchive: () => void;
@@ -29,18 +30,19 @@ export const LeadBulkActions: React.FC<LeadBulkActionsProps> = ({
   onBulkUpdateOwner,
   onBulkUpdateStatus,
   onBulkAddTag,
+  onBulkRemoveTag,
   onBulkCreateTask,
   onBulkExport,
   onBulkArchive,
 }) => {
   const [activeMenu, setActiveMenu] = useState<
-    "owner" | "status" | "tag" | null
+    "owner" | "status" | "tag" | "remove_tag" | null
   >(null);
 
   if (selectedCount === 0) return null;
 
   return (
-    <div className="fixed bottom-20 lg:bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-2xl w-[92%] sm:w-auto">
+    <div data-testid="lead-bulk-actions" className="fixed bottom-20 lg:bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-2xl w-[92%] sm:w-auto">
       <div className="bg-slate-900 text-white rounded-2xl shadow-2xl border border-slate-800 p-2 sm:p-2.5 flex items-center justify-between gap-2 sm:gap-3 backdrop-blur-md">
         {/* Count Indicator */}
         <div className="flex items-center gap-2 pl-2 border-r border-slate-800 pr-3 shrink-0">
@@ -57,6 +59,7 @@ export const LeadBulkActions: React.FC<LeadBulkActionsProps> = ({
           {/* Alterar Responsável */}
           <div className="relative">
             <button
+              data-testid="bulk-owner-trigger"
               onClick={() =>
                 setActiveMenu(activeMenu === "owner" ? null : "owner")
               }
@@ -102,6 +105,7 @@ export const LeadBulkActions: React.FC<LeadBulkActionsProps> = ({
           {/* Alterar Status */}
           <div className="relative">
             <button
+              data-testid="bulk-status-trigger"
               onClick={() =>
                 setActiveMenu(activeMenu === "status" ? null : "status")
               }
@@ -148,6 +152,7 @@ export const LeadBulkActions: React.FC<LeadBulkActionsProps> = ({
           {/* Adicionar Tag */}
           <div className="relative">
             <button
+              data-testid="bulk-tags-trigger"
               onClick={() =>
                 setActiveMenu(activeMenu === "tag" ? null : "tag")
               }
@@ -185,6 +190,44 @@ export const LeadBulkActions: React.FC<LeadBulkActionsProps> = ({
             )}
           </div>
 
+          {/* Remover Tag */}
+          <div className="relative">
+            <button
+              data-testid="bulk-remove-tags-trigger"
+              onClick={() =>
+                setActiveMenu(activeMenu === "remove_tag" ? null : "remove_tag")
+              }
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors shrink-0"
+            >
+              <Tag className="h-3.5 w-3.5 text-indigo-400" />
+              <span className="hidden md:inline">Remover tag</span>
+              <ChevronDown className="h-3 w-3" />
+            </button>
+
+            {activeMenu === "remove_tag" && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setActiveMenu(null)} />
+                <div className="absolute left-0 bottom-full mb-2 w-44 bg-slate-800 rounded-xl shadow-xl border border-slate-700 py-1 z-40 text-xs">
+                  <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700">
+                    Remover Tag
+                  </div>
+                  {MOCK_TAGS.map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => {
+                        onBulkRemoveTag(tag);
+                        setActiveMenu(null);
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-slate-700"
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
           {/* Criar Tarefa */}
           <button
             onClick={onBulkCreateTask}
@@ -205,6 +248,7 @@ export const LeadBulkActions: React.FC<LeadBulkActionsProps> = ({
 
           {/* Arquivar */}
           <button
+            data-testid="bulk-archive-trigger"
             onClick={onBulkArchive}
             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-rose-900/60 hover:bg-rose-900 text-rose-200 transition-colors shrink-0"
             title="Arquivar leads selecionados"

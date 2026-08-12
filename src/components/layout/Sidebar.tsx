@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { MOCK_COMPANIES, MOCK_USER_PROFILE } from "../../data/mockCrmData";
 import { CompanyAccount } from "../../types/crm";
+import { useCRM } from "../../context/CRMContext";
 
 interface SidebarProps {
   activeTab: string;
@@ -44,6 +45,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onMobileClose,
   leadsCount,
 }) => {
+  const { leads } = useCRM();
+  const activeLeadsCount = leads.filter((lead) => !lead.archivedAt && !lead.archived).length;
   const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<CompanyAccount>(
     MOCK_COMPANIES[0]
@@ -56,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: "leads",
       label: "Leads",
       icon: UserCheck,
-      badge: leadsCount !== undefined ? String(leadsCount) : "10",
+      badge: String(activeLeadsCount),
     },
     { id: "contatos", label: "Contatos", icon: Users },
     { id: "empresas", label: "Empresas", icon: Building2 },
@@ -222,6 +225,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 {(!collapsed || mobileOpen) && item.badge && (
                   <span
+                    data-testid={item.id === "leads" ? "leads-sidebar-badge" : undefined}
                     className={`px-1.5 py-0.5 text-[10px] font-semibold rounded-full ${
                       isActive
                         ? "bg-white/20 text-white"

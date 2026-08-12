@@ -44,8 +44,15 @@ export const MetricCard: React.FC<MetricCardProps> = ({ metric }) => {
     ? metric.trendType === "negative"
     : metric.trend !== undefined && metric.trend < 0;
 
+  const testIdByMetricId: Record<string, string> = {
+    "metric-pipeline": "metric-open-pipeline",
+    "metric-receita": "metric-won-revenue",
+    "metric-ganhos": "metric-won-deals",
+    "metric-leads": "metric-new-leads",
+  };
+
   return (
-    <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all relative group flex flex-col justify-between min-w-0 overflow-hidden">
+    <div data-testid={testIdByMetricId[metric.id]} className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all relative group flex flex-col justify-between min-w-0 overflow-hidden">
       <div>
         {/* Header: Label & Icon & Tooltip */}
         <div className="flex items-start justify-between gap-1.5 mb-2">

@@ -168,7 +168,7 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs overflow-y-auto">
+    <div data-testid="deal-form-modal" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl my-8 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
@@ -186,6 +186,7 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
             </div>
           </div>
           <button
+            data-testid="deal-form-cancel"
             type="button"
             onClick={onClose}
             className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
@@ -235,6 +236,7 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
                 Etapa do Funil <span className="text-rose-500">*</span>
               </label>
               <select
+                data-testid="deal-stage-field"
                 value={stageId}
                 onChange={(e) => setStageId(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white rounded-xl text-sm font-medium text-slate-800 outline-hidden cursor-pointer"
@@ -257,6 +259,7 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
               <div className="relative">
                 <DollarSign className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
+                  data-testid="deal-value-field"
                   type="number"
                   required
                   min="0"

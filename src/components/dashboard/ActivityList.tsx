@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   CheckSquare,
   Clock,
@@ -12,38 +12,67 @@ import {
   Filter,
 } from "lucide-react";
 import { CRMTask } from "../../types/crm";
+import { useCRM } from "../../context/CRMContext";
+import { getLocalDateString } from "../../utils/formatters";
 
 interface ActivityListProps {
-  initialTasks: CRMTask[];
   onTaskCompleted: (taskName: string) => void;
 }
 
 export const ActivityList: React.FC<ActivityListProps> = ({
-  initialTasks,
   onTaskCompleted,
 }) => {
-  const [tasks, setTasks] = useState<CRMTask[]>(initialTasks);
+  const { tasks: sharedTasks, activities: sharedActivities, completeTask, reopenTask, completeActivity } = useCRM();
   const [activeFilter, setActiveFilter] = useState<"minhas" | "equipe" | "atrasadas">("minhas");
 
   const toggleTaskCompletion = (taskId: string) => {
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id === taskId) {
-          const newStatus = t.status === "concluida" ? "pendente" : "concluida";
-          if (newStatus === "concluida") {
-            onTaskCompleted(`${t.type} - ${t.companyName}`);
-          }
-          return { ...t, status: newStatus };
-        }
-        return t;
-      })
-    );
+    const task = sharedTasks.find((item) => item.id === taskId);
+    if (task) {
+      if (task.status === "completed") reopenTask(taskId);
+      else {
+        completeTask(taskId);
+        onTaskCompleted(task.title);
+      }
+      return;
+    }
+    const activity = sharedActivities.find((item) => item.id === taskId);
+    if (activity && activity.status !== "completed") {
+      completeActivity(taskId);
+      onTaskCompleted(activity.title);
+    }
   };
+
+  const tasks = useMemo<CRMTask[]>(() => [
+    ...sharedTasks
+    .filter((task) => !task.archivedAt && task.dueDate === getLocalDateString())
+    .map((task) => ({
+      id: task.id,
+      time: task.dueTime || "09:00",
+      type: "Follow-up",
+      companyName: task.title || task.entityName || "Sem vínculo",
+      assigneeName: task.ownerName,
+      status: task.status === "completed" ? "concluida" : task.dueDate < getLocalDateString() ? "atrasada" : "pendente",
+      isMine: task.ownerId === "usr-1",
+      priority: task.priority === "high" ? "alta" : task.priority === "low" ? "baixa" : "media",
+    })),
+    ...sharedActivities
+      .filter((activity) => !activity.archivedAt && activity.startAt.startsWith(getLocalDateString()))
+      .map((activity) => ({
+        id: activity.id,
+        time: activity.startAt.includes("T") ? activity.startAt.split("T")[1].slice(0, 5) : "09:00",
+        type: activity.type === "meeting" ? "Reunião" : activity.type === "call" ? "Ligação" : "Follow-up",
+        companyName: activity.title,
+        assigneeName: activity.ownerName,
+        status: activity.status === "completed" ? "concluida" : "pendente",
+        isMine: activity.ownerId === "usr-1",
+        priority: "media",
+      })),
+  ], [sharedActivities, sharedTasks]);
 
   const filteredTasks = tasks.filter((task) => {
     if (activeFilter === "minhas") return task.isMine;
     if (activeFilter === "atrasadas") return task.status === "atrasada";
-    return true; // equipe shows all
+    return true;
   });
 
   const renderTypeIcon = (type: string) => {
@@ -62,7 +91,7 @@ export const ActivityList: React.FC<ActivityListProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+    <div data-testid="dashboard-activities-today" className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
       <div>
         {/* Header & Filter Tabs */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 mb-4">

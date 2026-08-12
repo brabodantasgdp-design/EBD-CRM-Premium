@@ -28,6 +28,9 @@ import { DealsPage } from "./components/deals/DealsPage";
 import { TasksPage } from "./components/tasks/TasksPage";
 import { AgendaPage } from "./components/agenda/AgendaPage";
 import { CRMDataProvider } from "./context/CRMContext";
+import { useCRM } from "./context/CRMContext";
+import { calculateDashboardMetrics, calculatePipelineStages, calculateLeadSources, calculateWeightedForecast } from "./utils/crmMetrics";
+import { getLocalDateString } from "./utils/formatters";
 import { Toast } from "./components/common/Toast";
 import { PeriodOption, UIStateMode, RiskDeal } from "./types/crm";
 import {
@@ -46,12 +49,24 @@ import {
 import { Info } from "lucide-react";
 
 export default function App() {
+  return (
+    <CRMDataProvider>
+      <AppContent />
+    </CRMDataProvider>
+  );
+}
+
+function AppContent() {
+  const { leads, deals, tasks, activities } = useCRM();
+  const dashboardMetrics = calculateDashboardMetrics(deals, leads);
+  const dashboardStages = calculatePipelineStages(deals);
+  const dashboardLeadSources = calculateLeadSources(leads);
+  const weightedForecast = calculateWeightedForecast(deals);
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
   const [currentPeriod, setCurrentPeriod] = useState<PeriodOption>("este_mes");
   const [uiState, setUiState] = useState<UIStateMode>("normal");
-  const [leadsCount, setLeadsCount] = useState<number>(10);
 
   // Modals & Drawers state
   const [quickCreateOpen, setQuickCreateOpen] = useState<boolean>(false);
@@ -114,7 +129,6 @@ export default function App() {
   };
 
   return (
-    <CRMDataProvider>
       <div className="min-h-screen bg-slate-100/70 text-slate-900 font-sans antialiased flex flex-col overflow-x-hidden">
         {/* Sidebar Navigation */}
       <Sidebar
@@ -124,7 +138,6 @@ export default function App() {
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         mobileOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}
-        leadsCount={leadsCount}
       />
 
       {/* Main Content Area Wrapper */}
@@ -150,7 +163,6 @@ export default function App() {
             <LeadsPage
               onShowToast={(msg) => showToast(msg)}
               currentPeriod={currentPeriod}
-              onLeadsCountChange={(count) => setLeadsCount(count)}
             />
           ) : activeTab === "contatos" ? (
             <ContactsPage
@@ -219,7 +231,7 @@ export default function App() {
                   {/* Row 2: KPIs Grid */}
                   <section aria-label="Métricas Principais">
                     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-                      {MOCK_METRICS.map((metric) => (
+                      {dashboardMetrics.map((metric) => (
                         <MetricCard key={metric.id} metric={metric} />
                       ))}
                     </div>
@@ -231,7 +243,16 @@ export default function App() {
                       <RevenueChartCard data={MOCK_REVENUE_EVOLUTION} />
                     </div>
                     <div className="min-w-0">
-                      <ForecastCard forecast={MOCK_FORECAST} />
+                      <ForecastCard
+                        forecast={{
+                          monthlyGoal: 500000,
+                          closedValue: deals.filter((deal) => deal.status === "won" && !deal.archivedAt).reduce((sum, deal) => sum + deal.value, 0),
+                          probableValue: weightedForecast,
+                          remainingGoal: Math.max(0, 500000 - weightedForecast),
+                          closedPercent: 0,
+                          probablePercent: 0,
+                        }}
+                      />
                     </div>
                   </div>
 
@@ -239,7 +260,7 @@ export default function App() {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                     <div className="min-w-0">
                       <PipelineOverview
-                        stages={MOCK_PIPELINE_STAGES}
+                        stages={dashboardStages}
                         onOpenPipelineModal={() => setKanbanOpen(true)}
                       />
                     </div>
@@ -255,7 +276,6 @@ export default function App() {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                     <div id="section-today-tasks" className="min-w-0">
                       <ActivityList
-                        initialTasks={MOCK_TASKS}
                         onTaskCompleted={(name) =>
                           showToast(`Tarefa concluída: ${name}`)
                         }
@@ -270,8 +290,8 @@ export default function App() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     <div className="min-w-0">
                       <LeadSourceCard
-                        leadMetrics={MOCK_LEAD_METRICS}
-                        leadSources={MOCK_LEAD_SOURCES}
+                        leadMetrics={{ totalNewLeads: leads.filter((lead) => !lead.archivedAt && !lead.archived).length, growthPercent: 0, qualifiedCount: leads.filter((lead) => lead.status === "qualified" && !lead.archivedAt).length, qualificationRatePercent: 0, weeklyTrend: [] }}
+                        leadSources={dashboardLeadSources}
                       />
                     </div>
                     <div className="min-w-0">
@@ -333,7 +353,7 @@ export default function App() {
 
       {kanbanOpen && (
         <PipelineKanbanModal
-          stages={MOCK_PIPELINE_STAGES}
+            stages={dashboardStages}
           onClose={() => setKanbanOpen(false)}
           onOpenNewDeal={() => {
             setKanbanOpen(false);
@@ -347,6 +367,5 @@ export default function App() {
         <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
       )}
     </div>
-    </CRMDataProvider>
   );
 }
