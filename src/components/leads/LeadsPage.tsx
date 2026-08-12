@@ -1,11 +1,10 @@
 import React, { useState, useMemo } from "react";
 import { LeadItem, LeadStatus } from "../../types/crm";
 import {
-  MOCK_LEADS,
-  MOCK_LEAD_SUMMARY_METRICS,
   MOCK_OWNERS,
   LeadSummaryMetrics,
 } from "../../data/mockLeadsData";
+import { useCRM } from "../../context/CRMContext";
 import { LeadsHeader } from "./LeadsHeader";
 import { LeadMetrics } from "./LeadMetrics";
 import { LeadFilters, FilterState } from "./LeadFilters";
@@ -31,17 +30,28 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
   currentPeriod = "este_mes",
   onLeadsCountChange,
 }) => {
-  // Main state
-  const [leads, setLeads] = useState<LeadItem[]>(
-    MOCK_LEADS.map(({ tasks: _tasks, activities: _activities, ...lead }) => lead)
-  );
+  const {
+    leads,
+    contacts,
+    companies,
+    addLead,
+    updateLead,
+    archiveLead,
+    bulkArchiveLeads,
+    bulkUpdateLeadsOwner,
+    bulkUpdateLeadsStatus,
+    bulkAddLeadTag,
+    addContact,
+    addCompany,
+    addDeal,
+  } = useCRM();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 
   // Sync count with parent / sidebar
   React.useEffect(() => {
-    onLeadsCountChange?.(leads.length);
-  }, [leads.length, onLeadsCountChange]);
+    onLeadsCountChange?.(leads.filter((lead) => !lead.archivedAt && !lead.archived).length);
+  }, [leads, onLeadsCountChange]);
 
   // Filters State
   const [filters, setFilters] = useState<FilterState>({
@@ -85,15 +95,16 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
 
   // Compute dynamic summary metrics derived strictly from the leads array
   const summaryMetrics: LeadSummaryMetrics = useMemo(() => {
-    const total = leads.length;
+    const activeLeads = leads.filter((lead) => !lead.archivedAt && !lead.archived);
+    const total = activeLeads.length;
     // Novos no período: leads com status "new" ou criados recentemente na base
-    const newInPeriodCount = leads.filter(
+    const newInPeriodCount = activeLeads.filter(
       (l) => l.status === "new" || l.createdAt === "Hoje" || l.createdAt.includes("08/2026")
     ).length;
-    const qualified = leads.filter((l) => l.status === "qualified").length;
-    const inContact = leads.filter((l) => l.status === "contacted").length;
-    const converted = leads.filter((l) => l.status === "converted").length;
-    const noAct = leads.filter(
+    const qualified = activeLeads.filter((l) => l.status === "qualified").length;
+    const inContact = activeLeads.filter((l) => l.status === "contacted").length;
+    const converted = activeLeads.filter((l) => l.status === "converted").length;
+    const noAct = activeLeads.filter(
       (l) =>
         l.lastActivityText.includes("dias") ||
         l.lastActivityText.includes("semanas")
@@ -115,6 +126,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
   // Filter & Sort Logic
   const filteredLeads = useMemo(() => {
     return leads
+      .filter((lead) => !lead.archivedAt && !lead.archived)
       .filter((lead) => {
         // Search Query
         if (filters.searchQuery.trim()) {
@@ -260,16 +272,10 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
         nextTaskText: "Nenhuma",
       };
 
-      setLeads((prev) => [newLeadObj, ...prev]);
+      addLead(newLeadObj);
       onShowToast(`Lead "${newLeadObj.name}" criado com sucesso!`);
     } else if (formMode === "edit" && editingLead) {
-      setLeads((prev) =>
-        prev.map((l) =>
-          l.id === editingLead.id
-            ? { ...l, ...leadData, updatedAt: "agora" }
-            : l
-        )
-      );
+      updateLead(editingLead.id, leadData);
 
       // If drawer is open with this lead, update it too
       if (selectedDetailLead?.id === editingLead.id) {
@@ -281,6 +287,17 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
   };
 
   const handleConfirmConvert = (leadId: string, convertedData: any) => {
+    const sourceLead = leads.find((lead) => lead.id === leadId);
+    if (!sourceLead || sourceLead.status === "converted") {
+      onShowToast("Este lead já foi convertido e não pode ser reconvertido.");
+      return;
+    }
+    const company = addCompany({ name: convertedData.companyName, ownerId: sourceLead.ownerId, ownerName: sourceLead.ownerName, source: "Conversão de Lead" });
+    const contact = addContact({ fullName: convertedData.contactName, firstName: convertedData.contactName.split(" ")[0], lastName: convertedData.contactName.split(" ").slice(1).join(" "), email: sourceLead.email, phone: sourceLead.phone, companyId: company.id, companyName: company.name, convertedFromLeadId: sourceLead.id, convertedFromLeadDate: new Date().toLocaleDateString("pt-BR"), ownerId: sourceLead.ownerId, ownerName: sourceLead.ownerName, source: "Conversão de Lead" });
+    const deal = addDeal({ name: convertedData.dealName, companyId: company.id, companyName: company.name, contactId: contact.id, contactName: contact.fullName, pipelineName: convertedData.pipelineName, stageName: convertedData.stageName, value: convertedData.estimatedValue, ownerId: sourceLead.ownerId, ownerName: sourceLead.ownerName, source: "Conversão de Lead" });
+    updateLead(leadId, { status: "converted", convertedContactId: contact.id, convertedCompanyId: company.id, convertedDealId: deal.id, convertedAt: new Date().toLocaleDateString("pt-BR"), lastActivityText: "Convertido em Negócio" });
+    /* Legacy local mutation removed: shared entities above are the source of truth. */
+    /*
     setLeads((prev) =>
       prev.map((l) =>
         l.id === leadId
@@ -293,6 +310,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
           : l
       )
     );
+    */
 
     if (selectedDetailLead?.id === leadId) {
       setSelectedDetailLead((prev) =>
@@ -300,6 +318,10 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
           ? {
               ...prev,
               status: "converted",
+              convertedContactId: contact.id,
+              convertedCompanyId: company.id,
+              convertedDealId: deal.id,
+              convertedAt: new Date().toLocaleDateString("pt-BR"),
               lastActivityText: "Convertido em Negócio",
             }
           : null
@@ -316,6 +338,8 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
     reason: any,
     note?: string
   ) => {
+    updateLead(leadId, { status: "disqualified" as LeadStatus, disqualificationReason: reason, disqualificationNote: note, lastActivityText: `Desqualificado: ${reason}` });
+    /*
     setLeads((prev) =>
       prev.map((l) =>
         l.id === leadId
@@ -330,6 +354,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
           : l
       )
     );
+    */
 
     if (selectedDetailLead?.id === leadId) {
       setSelectedDetailLead((prev) =>
@@ -356,19 +381,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
     const ownerName = ownerObj ? ownerObj.name : "Mariana Costa";
     const ownerAvatar = ownerObj ? ownerObj.avatar : undefined;
 
-    setLeads((prev) =>
-      prev.map((l) =>
-        selectedIds.includes(l.id)
-          ? {
-              ...l,
-              ownerId,
-              ownerName,
-              ownerAvatar,
-              updatedAt: "agora",
-            }
-          : l
-      )
-    );
+    bulkUpdateLeadsOwner(selectedIds, ownerId, ownerName, ownerAvatar);
 
     if (selectedDetailLead && selectedIds.includes(selectedDetailLead.id)) {
       setSelectedDetailLead((prev) =>
@@ -399,11 +412,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
       disqualified: "Desqualificado",
     };
 
-    setLeads((prev) =>
-      prev.map((l) =>
-        selectedIds.includes(l.id) ? { ...l, status, updatedAt: "agora" } : l
-      )
-    );
+    bulkUpdateLeadsStatus(selectedIds, status);
 
     if (selectedDetailLead && selectedIds.includes(selectedDetailLead.id)) {
       setSelectedDetailLead((prev) => (prev ? { ...prev, status } : null));
@@ -419,13 +428,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
     const targetCount = selectedIds.length;
     if (targetCount === 0) return;
 
-    setLeads((prev) =>
-      prev.map((l) =>
-        selectedIds.includes(l.id) && !l.tags.includes(tag)
-          ? { ...l, tags: [...l.tags, tag], updatedAt: "agora" }
-          : l
-      )
-    );
+    bulkAddLeadTag(selectedIds, tag);
 
     if (selectedDetailLead && selectedIds.includes(selectedDetailLead.id)) {
       setSelectedDetailLead((prev) =>
@@ -454,7 +457,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
     const targetCount = selectedIds.length;
     if (targetCount === 0) return;
 
-    setLeads((prev) => prev.filter((l) => !selectedIds.includes(l.id)));
+    bulkArchiveLeads(selectedIds);
 
     if (selectedDetailLead && selectedIds.includes(selectedDetailLead.id)) {
       setDetailDrawerOpen(false);
@@ -648,9 +651,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
         onOpenConvert={handleOpenConvert}
         onUpdateLead={(updated) => {
           setSelectedDetailLead(updated);
-          setLeads((prev) =>
-            prev.map((l) => (l.id === updated.id ? updated : l))
-          );
+          updateLead(updated.id, updated);
         }}
       />
 
@@ -691,7 +692,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
             lastActivityText: "Importado via CSV",
             nextTaskText: "Qualificar Lead",
           }));
-          setLeads((prev) => [...importedLeads, ...prev]);
+          importedLeads.forEach((importedLead) => addLead(importedLead));
           onShowToast(`${count} novos leads importados via CSV com sucesso!`);
         }}
       />

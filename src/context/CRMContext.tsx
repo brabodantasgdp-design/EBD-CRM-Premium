@@ -5,6 +5,8 @@ import {
   DealItem,
   TaskItem,
   ActivityItem,
+  LeadItem,
+  LeadStatus,
   ContactLifecycleStatus,
   CompanyStatus,
   CRMContextType,
@@ -13,6 +15,7 @@ import { MOCK_CONTACTS } from "../data/mockContactsData";
 import { MOCK_COMPANIES_DATA } from "../data/mockCompaniesData";
 import { MOCK_TASKS_SEED } from "../data/mockTasksData";
 import { MOCK_ACTIVITIES_SEED } from "../data/mockActivitiesData";
+import { MOCK_LEADS } from "../data/mockLeadsData";
 import { getLocalDateString } from "../utils/formatters";
 
 export const INITIAL_DEALS: DealItem[] = [
@@ -424,11 +427,78 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [deals, setDeals] = useState<DealItem[]>(
     INITIAL_DEALS.map(({ tasks: _tasks, activities: _activities, ...deal }) => deal)
   );
+  const [leads, setLeads] = useState<LeadItem[]>(
+    MOCK_LEADS.map(({ tasks: _tasks, activities: _activities, ...lead }) => lead)
+  );
   const [tasks, setTasks] = useState<TaskItem[]>(MOCK_TASKS_SEED);
   const [activities, setActivities] = useState<ActivityItem[]>(MOCK_ACTIVITIES_SEED);
 
+  // --- LEAD HANDLERS ---
+  const addLead = (leadData: Partial<LeadItem>): LeadItem => {
+    const names = (leadData.name || "Novo Lead").trim().split(/\s+/);
+    const newLead: LeadItem = {
+      id: leadData.id || `lead-${Date.now()}`,
+      organizationId: leadData.organizationId || "org-nexus-01",
+      name: leadData.name || "Novo Lead",
+      firstName: leadData.firstName || names[0],
+      lastName: leadData.lastName || names.slice(1).join(" "),
+      company: leadData.company || leadData.companyName || "",
+      companyId: leadData.companyId,
+      companyName: leadData.companyName || leadData.company,
+      jobTitle: leadData.jobTitle || "",
+      email: leadData.email || "",
+      phone: leadData.phone || "",
+      status: leadData.status || "new",
+      source: leadData.source || "Site",
+      ownerId: leadData.ownerId || "usr-1",
+      ownerName: leadData.ownerName || "Mariana Costa",
+      ownerAvatar: leadData.ownerAvatar,
+      score: leadData.score ?? 65,
+      tags: leadData.tags || [],
+      createdAt: leadData.createdAt || "Hoje",
+      updatedAt: leadData.updatedAt || "agora",
+      lastActivityText: leadData.lastActivityText || "agora",
+      nextTaskText: leadData.nextTaskText || "Nenhuma",
+      ...leadData,
+    };
+    setLeads((prev) => [newLead, ...prev]);
+    return newLead;
+  };
+
+  const updateLead = (id: string, updates: Partial<LeadItem>) => {
+    setLeads((prev) => prev.map((lead) => lead.id === id ? { ...lead, ...updates, updatedAt: "agora" } : lead));
+  };
+
+  const archiveLead = (id: string) => {
+    setLeads((prev) => prev.map((lead) => lead.id === id ? { ...lead, archivedAt: new Date().toISOString(), archived: true } : lead));
+  };
+
+  const bulkArchiveLeads = (ids: string[]) => {
+    setLeads((prev) => prev.map((lead) => ids.includes(lead.id) ? { ...lead, archivedAt: new Date().toISOString(), archived: true } : lead));
+  };
+
+  const bulkUpdateLeadsOwner = (ids: string[], ownerId: string, ownerName: string, ownerAvatar?: string) => {
+    setLeads((prev) => prev.map((lead) => ids.includes(lead.id) ? { ...lead, ownerId, ownerName, ownerAvatar, updatedAt: "agora" } : lead));
+  };
+
+  const bulkUpdateLeadsStatus = (ids: string[], status: LeadStatus) => {
+    setLeads((prev) => prev.map((lead) => ids.includes(lead.id) ? { ...lead, status, updatedAt: "agora" } : lead));
+  };
+
+  const bulkAddLeadTag = (ids: string[], tag: string) => {
+    setLeads((prev) => prev.map((lead) => ids.includes(lead.id) && !lead.tags.includes(tag) ? { ...lead, tags: [...lead.tags, tag], updatedAt: "agora" } : lead));
+  };
+
+  const bulkRemoveLeadTag = (ids: string[], tag: string) => {
+    setLeads((prev) => prev.map((lead) => ids.includes(lead.id) ? { ...lead, tags: lead.tags.filter((item) => item !== tag), updatedAt: "agora" } : lead));
+  };
+
   // --- CONTACTS HANDLERS ---
   const addContact = (contactData: Partial<ContactItem>): ContactItem => {
+    const existingContact = contactData.email
+      ? contacts.find((contact) => contact.email?.toLowerCase() === contactData.email?.toLowerCase())
+      : undefined;
+    if (existingContact) return existingContact;
     const fName = contactData.firstName || "";
     const lName = contactData.lastName || "";
     const computedFullName =
@@ -536,6 +606,10 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // --- COMPANIES HANDLERS ---
   const addCompany = (companyData: Partial<CompanyItem>): CompanyItem => {
+    const existingCompany = companyData.name
+      ? companies.find((company) => company.name.toLowerCase() === companyData.name?.toLowerCase())
+      : undefined;
+    if (existingCompany) return existingCompany;
     const newCompany: CompanyItem = {
       id: companyData.id || `comp-${Date.now()}`,
       organizationId: "org-nexus-01",
@@ -1045,11 +1119,20 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
   return (
     <CRMContext.Provider
       value={{
+        leads,
         contacts,
         companies,
         deals,
         tasks,
         activities,
+        addLead,
+        updateLead,
+        archiveLead,
+        bulkArchiveLeads,
+        bulkUpdateLeadsOwner,
+        bulkUpdateLeadsStatus,
+        bulkAddLeadTag,
+        bulkRemoveLeadTag,
         addContact,
         updateContact,
         archiveContact,

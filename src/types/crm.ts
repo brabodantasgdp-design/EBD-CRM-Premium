@@ -474,7 +474,11 @@ export interface LeadItem {
   id: string;
   organizationId?: string; // Documentação Multi-tenant / RLS
   name: string;
+  firstName?: string;
+  lastName?: string;
   company?: string;
+  companyId?: string;
+  companyName?: string;
   jobTitle?: string;
   email?: string;
   phone?: string;
@@ -487,6 +491,11 @@ export interface LeadItem {
   tags: string[];
   createdAt: string;
   updatedAt: string;
+  archivedAt?: string | null;
+  convertedAt?: string;
+  convertedContactId?: string;
+  convertedCompanyId?: string;
+  convertedDealId?: string;
   lastActivityText: string;
   nextTaskText?: string;
   archived?: boolean;
@@ -556,11 +565,21 @@ export interface ActivityItem {
 }
 
 export interface CRMContextType {
+  leads: LeadItem[];
   contacts: ContactItem[];
   companies: CompanyItem[];
   deals: DealItem[];
   tasks: TaskItem[];
   activities: ActivityItem[];
+
+  addLead: (lead: Partial<LeadItem>) => LeadItem;
+  updateLead: (id: string, updates: Partial<LeadItem>) => void;
+  archiveLead: (id: string) => void;
+  bulkArchiveLeads: (ids: string[]) => void;
+  bulkUpdateLeadsOwner: (ids: string[], ownerId: string, ownerName: string, ownerAvatar?: string) => void;
+  bulkUpdateLeadsStatus: (ids: string[], status: LeadStatus) => void;
+  bulkAddLeadTag: (ids: string[], tag: string) => void;
+  bulkRemoveLeadTag: (ids: string[], tag: string) => void;
   
   // Contact Actions
   addContact: (contact: Partial<ContactItem>) => ContactItem;
