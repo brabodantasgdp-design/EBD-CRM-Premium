@@ -206,10 +206,10 @@ export const CompanyDetailDrawer: React.FC<CompanyDetailDrawerProps> = ({
                 </h2>
                 <div className="flex items-center gap-2 text-xs font-medium text-slate-300 mt-0.5">
                   <span className="truncate">{company.segment}</span>
-                  {company.city && (
+                  {company.address?.city && (
                     <>
                       <span>•</span>
-                      <span>{company.city}, {company.state}</span>
+                      <span>{company.address.city}, {company.address.state}</span>
                     </>
                   )}
                 </div>

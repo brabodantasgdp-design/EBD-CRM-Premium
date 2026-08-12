@@ -48,24 +48,24 @@ export const ActivityList: React.FC<ActivityListProps> = ({
     .map((task) => ({
       id: task.id,
       time: task.dueTime || "09:00",
-      type: "Follow-up",
+      type: "Follow-up" as const,
       companyName: task.title || task.entityName || "Sem vínculo",
       assigneeName: task.ownerName,
-      status: task.status === "completed" ? "concluida" : task.dueDate < getLocalDateString() ? "atrasada" : "pendente",
+      status: (task.status === "completed" ? "concluida" : task.dueDate < getLocalDateString() ? "atrasada" : "pendente") as CRMTask["status"],
       isMine: task.ownerId === "usr-1",
-      priority: task.priority === "high" ? "alta" : task.priority === "low" ? "baixa" : "media",
+      priority: (task.priority === "high" ? "alta" : task.priority === "low" ? "baixa" : "media") as CRMTask["priority"],
     })),
     ...sharedActivities
       .filter((activity) => !activity.archivedAt && activity.startAt.startsWith(getLocalDateString()))
       .map((activity) => ({
         id: activity.id,
         time: activity.startAt.includes("T") ? activity.startAt.split("T")[1].slice(0, 5) : "09:00",
-        type: activity.type === "meeting" ? "Reunião" : activity.type === "call" ? "Ligação" : "Follow-up",
+        type: (activity.type === "meeting" ? "Reunião" : activity.type === "call" ? "Ligação" : "Follow-up") as CRMTask["type"],
         companyName: activity.title,
         assigneeName: activity.ownerName,
-        status: activity.status === "completed" ? "concluida" : "pendente",
+        status: (activity.status === "completed" ? "concluida" : "pendente") as CRMTask["status"],
         isMine: activity.ownerId === "usr-1",
-        priority: "media",
+        priority: "media" as const,
       })),
   ], [sharedActivities, sharedTasks]);
 

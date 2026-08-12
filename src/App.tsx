@@ -1,4 +1,7 @@
+"use client";
+
 import React, { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "./components/layout/Sidebar";
 import { Topbar } from "./components/layout/Topbar";
 import { MobileNavigation } from "./components/layout/MobileNavigation";
@@ -56,13 +59,18 @@ export default function App() {
   );
 }
 
-function AppContent() {
+export function AppContent() {
+  const router = useRouter();
+  const pathname = usePathname();
   const { leads, deals, tasks, activities } = useCRM();
   const dashboardMetrics = calculateDashboardMetrics(deals, leads);
   const dashboardStages = calculatePipelineStages(deals);
   const dashboardLeadSources = calculateLeadSources(leads);
   const weightedForecast = calculateWeightedForecast(deals);
-  const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const activeTab = pathname === "/" || pathname === "/dashboard" ? "dashboard" : pathname.slice(1);
+  const navigateTo = (tab: string) => {
+    router.push(tab === "dashboard" ? "/" : `/${tab}`);
+  };
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
   const [currentPeriod, setCurrentPeriod] = useState<PeriodOption>("este_mes");
@@ -133,7 +141,7 @@ function AppContent() {
         {/* Sidebar Navigation */}
       <Sidebar
         activeTab={activeTab}
-        onTabSelect={(id) => setActiveTab(id)}
+        onTabSelect={navigateTo}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         mobileOpen={mobileSidebarOpen}
@@ -170,7 +178,7 @@ function AppContent() {
               currentPeriod={currentPeriod}
             />
           ) : activeTab === "empresas" ? (
-            <CompaniesPage onOpenContactDetail={() => setActiveTab("contatos")} />
+            <CompaniesPage onOpenContactDetail={() => navigateTo("contatos")} />
           ) : activeTab === "negocios" ? (
             <DealsPage
               onShowToast={(msg) => showToast(msg)}
@@ -180,26 +188,26 @@ function AppContent() {
             <TasksPage
               onShowToast={(msg) => showToast(msg)}
               onNavigateToEntity={(type) => {
-                if (type === "deal") setActiveTab("negocios");
-                else if (type === "contact") setActiveTab("contatos");
-                else if (type === "company") setActiveTab("empresas");
-                else if (type === "lead") setActiveTab("leads");
+                if (type === "deal") navigateTo("negocios");
+                else if (type === "contact") navigateTo("contatos");
+                else if (type === "company") navigateTo("empresas");
+                else if (type === "lead") navigateTo("leads");
               }}
             />
           ) : activeTab === "agenda" ? (
             <AgendaPage
               onShowToast={(msg) => showToast(msg)}
               onNavigateToEntity={(type) => {
-                if (type === "deal") setActiveTab("negocios");
-                else if (type === "contact") setActiveTab("contatos");
-                else if (type === "company") setActiveTab("empresas");
-                else if (type === "lead") setActiveTab("leads");
+                if (type === "deal") navigateTo("negocios");
+                else if (type === "contact") navigateTo("contatos");
+                else if (type === "company") navigateTo("empresas");
+                else if (type === "lead") navigateTo("leads");
               }}
             />
           ) : activeTab !== "dashboard" ? (
             <ModulePlaceholder
               moduleName={getTabTitle(activeTab)}
-              onReturnToDashboard={() => setActiveTab("dashboard")}
+              onReturnToDashboard={() => navigateTo("dashboard")}
             />
           ) : (
             <>
@@ -330,7 +338,7 @@ function AppContent() {
       {/* Mobile Bottom Navigation Bar */}
       <MobileNavigation
         activeTab={activeTab}
-        onTabSelect={(id) => setActiveTab(id)}
+        onTabSelect={navigateTo}
         onOpenQuickCreate={() => handleOpenQuickCreate("lead")}
       />
 

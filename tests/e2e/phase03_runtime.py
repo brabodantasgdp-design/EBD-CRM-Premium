@@ -25,6 +25,17 @@ def currency(text: str) -> float:
 
 def nav(page: Page, label: str) -> None:
     page.locator("aside").get_by_role("button", name=re.compile(rf"^{re.escape(label)}(?:\s|$)")).click()
+    route_by_label = {
+        "Dashboard": "/",
+        "Leads": "/leads",
+        "Contatos": "/contatos",
+        "Empresas": "/empresas",
+        "Negócios": "/negocios",
+        "Tarefas": "/tarefas",
+        "Agenda": "/agenda",
+    }
+    if label in route_by_label:
+        page.wait_for_url(re.compile(re.escape(route_by_label[label]) + r"/?$"))
 
 
 def lead_ids(page: Page):
