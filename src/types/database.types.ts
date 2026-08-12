@@ -23,12 +23,31 @@ export type Database = {
         Update: { id?: string; organization_id?: string; user_id?: string; role?: string; status?: string; created_at?: string; updated_at?: string };
         Relationships: [{ foreignKeyName: "organization_members_organization_id_fkey"; columns: ["organization_id"]; isOneToOne: false; referencedRelation: "organizations"; referencedColumns: ["id"] }];
       };
+      organization_invites: {
+        Row: { id: string; organization_id: string; email: string; role: string; status: string; token_hash: string; invited_by: string; expires_at: string; accepted_at: string | null; created_at: string; updated_at: string };
+        Insert: { id?: string; organization_id: string; email: string; role: string; status?: string; token_hash: string; invited_by: string; expires_at: string; accepted_at?: string | null; created_at?: string; updated_at?: string };
+        Update: { id?: string; organization_id?: string; email?: string; role?: string; status?: string; token_hash?: string; invited_by?: string; expires_at?: string; accepted_at?: string | null; created_at?: string; updated_at?: string };
+        Relationships: [{ foreignKeyName: "organization_invites_organization_id_fkey"; columns: ["organization_id"]; isOneToOne: false; referencedRelation: "organizations"; referencedColumns: ["id"] }];
+      };
+      audit_logs: {
+        Row: { id: string; organization_id: string; actor_user_id: string; action: string; entity_type: string; entity_id: string | null; metadata: Json; created_at: string };
+        Insert: { id?: string; organization_id: string; actor_user_id: string; action: string; entity_type: string; entity_id?: string | null; metadata?: Json; created_at?: string };
+        Update: { id?: string; organization_id?: string; actor_user_id?: string; action?: string; entity_type?: string; entity_id?: string | null; metadata?: Json; created_at?: string };
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
       create_initial_organization: { Args: { organization_name: string; organization_slug?: string }; Returns: string };
       is_active_member: { Args: { target_organization: string; target_user?: string }; Returns: boolean };
       is_active_admin: { Args: { target_organization: string; target_user?: string }; Returns: boolean };
+      can_manage_members: { Args: { target_organization: string; target_user?: string }; Returns: boolean };
+      create_audit_log: { Args: { target_org: string; target_action: string; target_entity_type: string; target_entity_id?: string | null; target_metadata?: Json }; Returns: undefined };
+      create_organization_invite: { Args: { target_org: string; target_email: string; target_role: string; target_token_hash: string; target_expires_at: string }; Returns: string };
+      change_member_role: { Args: { target_member: string; target_role: string }; Returns: boolean };
+      set_member_status: { Args: { target_member: string; target_status: string }; Returns: boolean };
+      revoke_organization_invite: { Args: { target_invite: string }; Returns: boolean };
+      accept_organization_invite: { Args: { target_hash: string }; Returns: string };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
