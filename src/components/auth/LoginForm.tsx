@@ -2,7 +2,6 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createSupabaseBrowserClient } from "../../lib/supabase/client";
 import { hasSupabaseConfiguration } from "../../lib/supabase/env";
 
 export function LoginForm({ nextPath }: { nextPath?: string }) {
@@ -15,20 +14,21 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    const supabase = createSupabaseBrowserClient();
-    if (!supabase) {
-      setError("A autenticação ainda não está configurada neste ambiente.");
-      return;
-    }
     setLoading(true);
-    const result = await supabase.auth.signInWithPassword({ email, password });
-    if (result.error) {
-      setError("E-mail ou senha inválidos.");
+    try {
+      const response = await fetch("/api/auth/login", { method: "POST", body: new URLSearchParams({ email, password, next: nextPath ?? "" }) });
+      const result = await response.json() as { redirectTo?: string; error?: string };
+      if (!response.ok || !result.redirectTo) {
+        setError(result.error ?? "E-mail ou senha inválidos.");
+        setLoading(false);
+        return;
+      }
+      router.replace(result.redirectTo);
+      router.refresh();
+    } catch {
+      setError("Não foi possível concluir o login.");
       setLoading(false);
-      return;
     }
-    router.replace(nextPath || "/dashboard");
-    router.refresh();
   }
 
   return (
