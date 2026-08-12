@@ -2,8 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabasePublicEnv } from "./env";
+import type { Database } from "../../types/database.types";
 
-export async function createSupabaseServerClient(): Promise<SupabaseClient | null> {
+export async function createSupabaseServerClient(): Promise<SupabaseClient<Database> | null> {
   const config = getSupabasePublicEnv();
   if (!config) return null;
 

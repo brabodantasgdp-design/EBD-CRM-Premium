@@ -23,14 +23,16 @@ export async function getCurrentOrganization() {
 
   const { data: memberships } = await supabase
     .from("organization_members")
-    .select("organization_id, role, status, organizations(*)")
+    .select("organization_id, role, status")
     .eq("user_id", user.id)
     .eq("status", "active");
 
   const requestedId = (await import("next/headers")).cookies().then((store) => store.get("nexus-active-organization")?.value);
   const activeId = await requestedId;
   const valid = memberships?.find((membership) => membership.organization_id === activeId) ?? memberships?.[0];
-  return valid?.organizations ?? null;
+  if (!valid) return null;
+  const { data: organization } = await supabase.from("organizations").select("*").eq("id", valid.organization_id).maybeSingle();
+  return organization;
 }
 
 export async function requireOrganization() {

@@ -6,9 +6,11 @@ export async function GET() {
   if (!supabase) return NextResponse.json({ configured: false, organizations: [] });
   const { data: user } = await supabase.auth.getUser();
   if (!user.user) return NextResponse.json({ configured: true, organizations: [] }, { status: 401 });
-  const { data, error } = await supabase.from("organization_members").select("organization_id, role, status, organizations(*)").eq("user_id", user.user.id).eq("status", "active");
+  const { data, error } = await supabase.from("organization_members").select("organization_id, role, status").eq("user_id", user.user.id).eq("status", "active");
   if (error) return NextResponse.json({ error: "Não foi possível carregar organizações." }, { status: 500 });
-  return NextResponse.json({ configured: true, organizations: data ?? [] });
+  const organizationIds = (data ?? []).map((membership) => membership.organization_id);
+  const { data: organizations } = organizationIds.length ? await supabase.from("organizations").select("*").in("id", organizationIds) : { data: [] };
+  return NextResponse.json({ configured: true, organizations: (data ?? []).map((membership) => ({ ...membership, organizations: organizations?.find((organization) => organization.id === membership.organization_id) ?? null })) });
 }
 
 export async function POST(request: Request) {

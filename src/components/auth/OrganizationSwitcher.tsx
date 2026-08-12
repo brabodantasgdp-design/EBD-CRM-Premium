@@ -18,7 +18,7 @@ export function OrganizationSwitcher() {
       if (!payload.configured) return;
       setConfigured(true);
       if (response.ok) {
-        const rows = (payload.organizations ?? []).map((row: { organization_id: string; organizations: Organization }) => ({ ...row.organizations, id: row.organization_id }));
+        const rows = (payload.organizations ?? []).map((row: { organization_id: string; organizations: Organization | null }) => ({ ...(row.organizations ?? { name: "Sem organização" }), id: row.organization_id }));
         setOrganizations(rows);
         setActiveId(rows[0]?.id);
       }
