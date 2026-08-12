@@ -62,6 +62,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({
               return (
                 <tr
                   key={lead.id}
+                  data-testid={`lead-row-${lead.id}`}
                   className={`group transition-colors hover:bg-slate-50/80 cursor-pointer ${
                     isSelected ? "bg-indigo-50/40" : ""
                   }`}
@@ -73,6 +74,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({
                     onClick={(e) => e.stopPropagation()}
                   >
                     <input
+                      data-testid={`lead-checkbox-${lead.id}`}
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => onToggleSelect(lead.id)}

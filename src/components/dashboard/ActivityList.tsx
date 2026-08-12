@@ -91,7 +91,7 @@ export const ActivityList: React.FC<ActivityListProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+    <div data-testid="dashboard-activities-today" className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
       <div>
         {/* Header & Filter Tabs */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 mb-4">

@@ -70,7 +70,7 @@ export const ForecastCard: React.FC<ForecastCardProps> = ({ forecast }) => {
         <div className="space-y-2 mb-4">
           <div className="flex items-center justify-between text-xs font-bold text-slate-800">
             <span>Progresso da Meta</span>
-            <span className="text-indigo-600">
+            <span data-testid="metric-weighted-forecast" className="text-indigo-600">
               Ponderado: {formatCurrency(forecast.probableValue)} ({forecast.probablePercent}%)
             </span>
           </div>

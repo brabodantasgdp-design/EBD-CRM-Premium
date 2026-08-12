@@ -51,6 +51,7 @@ export const DealsHeader: React.FC<DealsHeaderProps> = ({
         <div className="relative mt-2 sm:mt-0 sm:ml-4">
           <button
             type="button"
+            data-testid="deals-kanban-view"
             onClick={() => setPipelineDropdownOpen(!pipelineDropdownOpen)}
             className="flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 hover:border-indigo-300 rounded-xl shadow-2xs font-semibold text-sm text-slate-800 transition-colors cursor-pointer"
           >
@@ -126,6 +127,7 @@ export const DealsHeader: React.FC<DealsHeaderProps> = ({
         <div className="flex items-center p-1 bg-slate-200/80 rounded-xl border border-slate-300/60">
           <button
             type="button"
+            data-testid="deals-kanban-view"
             onClick={() => onViewModeChange("kanban")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               viewMode === "kanban"
@@ -138,6 +140,7 @@ export const DealsHeader: React.FC<DealsHeaderProps> = ({
           </button>
           <button
             type="button"
+            data-testid="deals-list-view"
             onClick={() => onViewModeChange("table")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               viewMode === "table"
@@ -152,6 +155,7 @@ export const DealsHeader: React.FC<DealsHeaderProps> = ({
 
         {/* Create Deal Primary Button */}
         <button
+          data-testid="new-deal-button"
           type="button"
           onClick={onOpenCreateModal}
           className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold text-sm rounded-xl shadow-xs hover:shadow-md transition-all cursor-pointer"

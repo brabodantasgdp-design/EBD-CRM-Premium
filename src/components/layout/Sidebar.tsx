@@ -225,6 +225,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 {(!collapsed || mobileOpen) && item.badge && (
                   <span
+                    data-testid={item.id === "leads" ? "leads-sidebar-badge" : undefined}
                     className={`px-1.5 py-0.5 text-[10px] font-semibold rounded-full ${
                       isActive
                         ? "bg-white/20 text-white"

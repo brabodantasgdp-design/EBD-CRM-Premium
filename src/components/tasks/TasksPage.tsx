@@ -640,6 +640,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({
                       return (
                         <tr
                           key={task.id}
+                          data-testid={`task-row-${task.id}`}
                           className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors ${
                             isSelected ? "bg-indigo-50/40 dark:bg-indigo-950/20" : ""
                           }`}
@@ -658,6 +659,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({
                           <td className="py-3 px-4">
                             <div className="flex items-start gap-3">
                               <button
+                                data-testid={`complete-task-${task.id}`}
                                 onClick={() => handleToggleTaskStatus(task)}
                                 className={`mt-0.5 shrink-0 h-5 w-5 rounded-md border transition-all flex items-center justify-center ${
                                   isCompleted

@@ -155,7 +155,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+    <div data-testid="lead-form-modal" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       <div
         className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity"
         onClick={onClose}
@@ -414,6 +414,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
               Cancelar
             </button>
             <button
+              data-testid="lead-form-submit"
               type="submit"
               disabled={isSubmitting}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-xs active:scale-98 disabled:opacity-50"

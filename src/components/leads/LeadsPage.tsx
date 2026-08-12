@@ -41,6 +41,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
     bulkUpdateLeadsOwner,
     bulkUpdateLeadsStatus,
     bulkAddLeadTag,
+    bulkRemoveLeadTag,
     addContact,
     addCompany,
     addDeal,
@@ -442,6 +443,15 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
     setSelectedIds([]);
   };
 
+  const handleBulkRemoveTag = (tag: string) => {
+    const targetCount = selectedIds.length;
+    if (targetCount === 0) return;
+
+    bulkRemoveLeadTag(selectedIds, tag);
+    onShowToast(`Tag "${tag}" removida de ${targetCount} lead(s).`);
+    setSelectedIds([]);
+  };
+
   const handleBulkCreateTask = () => {
     onShowToast(
       `Tarefa em lote agendada para os ${selectedIds.length} lead(s) selecionados.`
@@ -628,6 +638,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
         onBulkUpdateOwner={handleBulkUpdateOwner}
         onBulkUpdateStatus={handleBulkUpdateStatus}
         onBulkAddTag={handleBulkAddTag}
+        onBulkRemoveTag={handleBulkRemoveTag}
         onBulkCreateTask={handleBulkCreateTask}
         onBulkExport={handleBulkExport}
         onBulkArchive={handleBulkArchive}

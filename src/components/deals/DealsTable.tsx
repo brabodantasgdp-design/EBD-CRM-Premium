@@ -162,6 +162,7 @@ export const DealsTable: React.FC<DealsTableProps> = ({
               return (
                 <tr
                   key={deal.id}
+                  data-testid={`deal-row-${deal.id}`}
                   onClick={() => onOpenDetail(deal)}
                   className={`hover:bg-slate-50/80 transition-colors cursor-pointer group ${
                     isSelected ? "bg-indigo-50/40" : ""
@@ -269,6 +270,7 @@ export const DealsTable: React.FC<DealsTableProps> = ({
                 {/* Actions Dropdown */}
                 <td className="py-3.5 px-4 text-right relative">
                   <button
+                    data-testid={`deal-actions-${deal.id}`}
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -320,6 +322,7 @@ export const DealsTable: React.FC<DealsTableProps> = ({
                           {deal.status === "open" ? (
                             <>
                               <button
+                                data-testid={`mark-deal-won-${deal.id}`}
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
