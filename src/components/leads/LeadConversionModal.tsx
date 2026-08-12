@@ -15,19 +15,19 @@ export const LeadConversionModal: React.FC<LeadConversionModalProps> = ({
   onClose,
   onConfirmConvert,
 }) => {
-  if (!isOpen || !lead) return null;
-
-  const [contactName, setContactName] = useState(lead.name);
+  const [contactName, setContactName] = useState(lead?.name || "");
   const [companyName, setCompanyName] = useState(
-    lead.company || "Empresa a definir"
+    lead?.company || "Empresa a definir"
   );
   const [dealName, setDealName] = useState(
-    `Projeto Expansão ${lead.company || lead.name}`
+    `Projeto Expansão ${lead?.company || lead?.name || "Novo Lead"}`
   );
   const [pipelineName, setPipelineName] = useState("Vendas B2B");
   const [stageName, setStageName] = useState("Qualificação");
   const [estimatedValue, setEstimatedValue] = useState("45000");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (!isOpen || !lead) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
