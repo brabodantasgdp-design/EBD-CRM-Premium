@@ -4,6 +4,7 @@ import { UserPlus, Upload, Download, Users } from "lucide-react";
 interface ContactsHeaderProps {
   onOpenNewContact: () => void;
   onOpenImport: () => void;
+  importDisabled?: boolean;
   onOpenExport: () => void;
   selectedCount?: number;
 }
@@ -11,6 +12,7 @@ interface ContactsHeaderProps {
 export const ContactsHeader: React.FC<ContactsHeaderProps> = ({
   onOpenNewContact,
   onOpenImport,
+  importDisabled = false,
   onOpenExport,
   selectedCount = 0,
 }) => {
@@ -36,8 +38,9 @@ export const ContactsHeader: React.FC<ContactsHeaderProps> = ({
         {/* Secondary Import/Export Buttons */}
         <button
           onClick={onOpenImport}
+          disabled={importDisabled}
           className="px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs"
-          title="Importar contatos via CSV"
+          title={importDisabled ? "Importação em lote será habilitada em uma fase específica" : "Importar contatos via CSV"}
         >
           <Upload className="h-3.5 w-3.5 text-slate-500" />
           <span className="hidden md:inline">Importar</span>
