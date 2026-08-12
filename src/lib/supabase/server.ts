@@ -10,6 +10,12 @@ export async function createSupabaseServerClient(): Promise<SupabaseClient<Datab
 
   const cookieStore = await cookies();
   return createServerClient(config.url, config.key, {
+    cookieOptions: {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+    },
     cookies: {
       getAll() {
         return cookieStore.getAll();

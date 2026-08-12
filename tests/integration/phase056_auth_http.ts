@@ -1,12 +1,16 @@
 import { readFileSync } from "node:fs";
 
-const baseUrl = "https://crmpro-r9x0k2hig-gestao-de-sistema.vercel.app";
+const baseUrl = envValue("E2E_BASE_URL", "https://crmpro-r9x0k2hig-gestao-de-sistema.vercel.app");
 const env = Object.fromEntries(readFileSync(".env.local", "utf8").split(/\r?\n/).filter((line) => line && !line.startsWith("#") && line.includes("=")).map((line) => {
   const index = line.indexOf("=");
   return [line.slice(0, index), line.slice(index + 1).trim().replace(/^['"]|['"]$/g, "")];
 }));
 const bypass = env.VERCEL_AUTOMATION_BYPASS_SECRET;
 if (!bypass) throw new Error("VERCEL_AUTOMATION_BYPASS_SECRET ausente");
+
+function envValue(name: string, fallback: string) {
+  return process.env[name] ?? fallback;
+}
 
 type Cookie = { name: string; value: string; attributes: Record<string, string | boolean> };
 

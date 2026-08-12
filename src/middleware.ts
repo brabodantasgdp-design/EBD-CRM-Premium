@@ -10,6 +10,12 @@ export async function middleware(request: NextRequest) {
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient(url, key, {
+    cookieOptions: {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+    },
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll(values) {
