@@ -32,7 +32,7 @@ import {
   DealNote,
 } from "../../types/crm";
 import { useCRM } from "../../context/CRMContext";
-import { formatDateToISO, getLocalDateString } from "../../utils/formatters";
+import { formatDateToISO, getLocalDateString, getLocalDateTimeISO } from "../../utils/formatters";
 
 interface DealDetailDrawerProps {
   isOpen: boolean;
@@ -132,7 +132,7 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
       description: actDesc.trim(),
       ownerId: deal.ownerId || "usr-1",
       ownerName: deal.ownerName || "Mariana Costa",
-      startAt: new Date().toISOString(),
+      startAt: getLocalDateTimeISO(),
       status: "completed",
       entityType: "deal",
       entityId: deal.id,

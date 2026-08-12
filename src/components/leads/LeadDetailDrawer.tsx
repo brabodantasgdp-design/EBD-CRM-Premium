@@ -24,7 +24,7 @@ import { LeadItem } from "../../types/crm";
 import { LeadStatusBadge } from "./LeadStatusBadge";
 import { LeadScoreBadge } from "./LeadScoreBadge";
 import { useCRM } from "../../context/CRMContext";
-import { formatDateToISO, getLocalDateString } from "../../utils/formatters";
+import { formatDateToISO, getLocalDateString, getLocalDateTimeISO } from "../../utils/formatters";
 
 interface LeadDetailDrawerProps {
   isOpen: boolean;
@@ -86,7 +86,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
       description: newActivityDesc.trim() || "Atividade registrada pelo usuário.",
       ownerId: lead.ownerId,
       ownerName: lead.ownerName,
-      startAt: new Date().toISOString(),
+      startAt: getLocalDateTimeISO(),
       status: "completed",
       entityType: "lead",
       entityId: lead.id,

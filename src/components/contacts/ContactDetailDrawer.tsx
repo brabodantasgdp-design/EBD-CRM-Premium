@@ -28,7 +28,7 @@ import { ContactItem, ContactActivity, ContactNote, ContactDeal } from "../../ty
 import { ContactStatusBadge } from "./ContactStatusBadge";
 import { CreateDealFromContactModal } from "./CreateDealFromContactModal";
 import { useCRM } from "../../context/CRMContext";
-import { getLocalDateString } from "../../utils/formatters";
+import { getLocalDateString, getLocalDateTimeISO } from "../../utils/formatters";
 
 interface ContactDetailDrawerProps {
   contact: ContactItem;
@@ -98,7 +98,7 @@ export const ContactDetailDrawer: React.FC<ContactDetailDrawerProps> = ({
       description: activityDesc.trim(),
       ownerId: contact.ownerId,
       ownerName: contact.ownerName,
-      startAt: new Date().toISOString(),
+      startAt: getLocalDateTimeISO(),
       status: "completed",
       entityType: "contact",
       entityId: contact.id,

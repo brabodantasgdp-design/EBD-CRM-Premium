@@ -38,7 +38,7 @@ import { CompanyStatusBadge } from "./CompanyStatusBadge";
 import { COMPANY_STATUS_CONFIG } from "../../constants/companyStatus";
 import { MOCK_OWNERS } from "../../data/mockContactsData";
 import { useCRM } from "../../context/CRMContext";
-import { getLocalDateString } from "../../utils/formatters";
+import { getLocalDateString, getLocalDateTimeISO } from "../../utils/formatters";
 
 interface CompanyDetailDrawerProps {
   company: CompanyItem;
@@ -128,7 +128,7 @@ export const CompanyDetailDrawer: React.FC<CompanyDetailDrawerProps> = ({
       description: newActDesc.trim() || "Atividade registrada via Visão 360° da empresa.",
       ownerId: company.ownerId,
       ownerName: company.ownerName,
-      startAt: new Date().toISOString(),
+      startAt: getLocalDateTimeISO(),
       status: "completed",
       entityType: "company",
       entityId: company.id,
