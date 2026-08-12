@@ -1,0 +1,6 @@
+{
+  "name": "Nexus CRM - Dashboard Executivo",
+  "description": "Dashboard executivo e operacional para CRM SaaS B2B corporativo multiempresa",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

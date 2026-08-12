@@ -1,0 +1,40 @@
+export const formatDateToBR = (dateStr?: string): string => {
+  if (!dateStr) return "";
+  if (dateStr.includes("/")) return dateStr;
+  if (dateStr.includes("-")) {
+    const clean = dateStr.split("T")[0];
+    const parts = clean.split("-");
+    if (parts.length === 3) {
+      const [y, m, d] = parts;
+      return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
+    }
+  }
+  return dateStr;
+};
+
+export const formatDateToISO = (dateStr?: string): string => {
+  if (!dateStr) {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
+  }
+  if (dateStr.includes("-")) {
+    return dateStr.split("T")[0];
+  }
+  if (dateStr.includes("/")) {
+    const parts = dateStr.split("/");
+    if (parts.length === 3) {
+      const [d, m, y] = parts;
+      return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    }
+  }
+  return dateStr;
+};
+
+export const formatCurrencyBR = (value?: number): string => {
+  const val = value || 0;
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 0,
+  }).format(val);
+};
