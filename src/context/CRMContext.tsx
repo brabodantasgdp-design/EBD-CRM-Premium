@@ -13,6 +13,7 @@ import { MOCK_CONTACTS } from "../data/mockContactsData";
 import { MOCK_COMPANIES_DATA } from "../data/mockCompaniesData";
 import { MOCK_TASKS_SEED } from "../data/mockTasksData";
 import { MOCK_ACTIVITIES_SEED } from "../data/mockActivitiesData";
+import { getLocalDateString } from "../utils/formatters";
 
 export const INITIAL_DEALS: DealItem[] = [
   {
@@ -414,9 +415,15 @@ const CRMContext = createContext<CRMContextType | undefined>(undefined);
 export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [contacts, setContacts] = useState<ContactItem[]>(MOCK_CONTACTS);
-  const [companies, setCompanies] = useState<CompanyItem[]>(MOCK_COMPANIES_DATA);
-  const [deals, setDeals] = useState<DealItem[]>(INITIAL_DEALS);
+  const [contacts, setContacts] = useState<ContactItem[]>(
+    MOCK_CONTACTS.map(({ tasks: _tasks, activities: _activities, ...contact }) => contact)
+  );
+  const [companies, setCompanies] = useState<CompanyItem[]>(
+    MOCK_COMPANIES_DATA.map(({ tasks: _tasks, activities: _activities, ...company }) => company)
+  );
+  const [deals, setDeals] = useState<DealItem[]>(
+    INITIAL_DEALS.map(({ tasks: _tasks, activities: _activities, ...deal }) => deal)
+  );
   const [tasks, setTasks] = useState<TaskItem[]>(MOCK_TASKS_SEED);
   const [activities, setActivities] = useState<ActivityItem[]>(MOCK_ACTIVITIES_SEED);
 
@@ -620,6 +627,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // --- DEALS HANDLERS ---
   const addDeal = (dealData: Partial<DealItem>): DealItem => {
+    const { activities: _legacyActivities, tasks: _legacyTasks, ...cleanDealData } = dealData;
     const rawVal =
       typeof dealData.value === "number"
         ? dealData.value
@@ -649,17 +657,6 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
       status: dealData.status || "open",
       source: dealData.source || "Manual",
       tags: dealData.tags || [],
-      activities: dealData.activities || [
-        {
-          id: `act-init-${Date.now()}`,
-          type: "note",
-          title: "Negócio criado no CRM",
-          description: "Oportunidade cadastrada no funil de vendas.",
-          authorName: dealData.ownerName || "Mariana Costa",
-          createdAt: new Date().toLocaleDateString("pt-BR"),
-        },
-      ],
-      tasks: dealData.tasks || [],
       products: dealData.products || [],
       notes: dealData.notes || [],
       stageHistory: dealData.stageHistory || [],
@@ -668,10 +665,29 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
       updatedAt: "agora mesmo",
       lastActivityAt: new Date().toLocaleDateString("pt-BR"),
       lastActivityText: "Negócio cadastrado no CRM",
-      ...dealData,
+      ...cleanDealData,
     };
 
     setDeals((prev) => [newDeal, ...prev]);
+    setActivities((prev) => [
+      {
+        id: `act-init-${Date.now()}`,
+        organizationId: "org-nexus-01",
+        type: "note",
+        title: "Negócio criado no CRM",
+        description: "Oportunidade cadastrada no funil de vendas.",
+        ownerId: newDeal.ownerId || "usr-1",
+        ownerName: newDeal.ownerName || "Mariana Costa",
+        startAt: new Date().toISOString(),
+        status: "completed",
+        entityType: "deal",
+        entityId: newDeal.id,
+        entityName: newDeal.name,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      ...prev,
+    ]);
     return newDeal;
   };
 
@@ -773,7 +789,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
       ownerId: taskData.ownerId || "usr-1",
       ownerName: taskData.ownerName || "Mariana Costa",
       ownerAvatar: taskData.ownerAvatar,
-      dueDate: taskData.dueDate || new Date().toISOString().split("T")[0],
+      dueDate: taskData.dueDate || getLocalDateString(),
       dueTime: taskData.dueTime || "12:00",
       entityType: taskData.entityType,
       entityId: taskData.entityId,
@@ -909,6 +925,35 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     setActivities((prev) => [newActivity, ...prev]);
+
+    const activityLabel = `${newActivity.title} (agora mesmo)`;
+    if (newActivity.entityType === "contact" && newActivity.entityId) {
+      setContacts((prev) =>
+        prev.map((contact) =>
+          contact.id === newActivity.entityId
+            ? { ...contact, lastActivityText: activityLabel, daysWithoutActivity: 0, updatedAt: "agora mesmo" }
+            : contact
+        )
+      );
+    }
+    if (newActivity.entityType === "company" && newActivity.entityId) {
+      setCompanies((prev) =>
+        prev.map((company) =>
+          company.id === newActivity.entityId
+            ? { ...company, lastActivityText: activityLabel, daysWithoutActivity: 0, updatedAt: "agora mesmo" }
+            : company
+        )
+      );
+    }
+    if (newActivity.entityType === "deal" && newActivity.entityId) {
+      setDeals((prev) =>
+        prev.map((deal) =>
+          deal.id === newActivity.entityId
+            ? { ...deal, lastActivityAt: new Date().toLocaleDateString("pt-BR"), lastActivityText: newActivity.title, updatedAt: "agora mesmo" }
+            : deal
+        )
+      );
+    }
     return newActivity;
   };
 

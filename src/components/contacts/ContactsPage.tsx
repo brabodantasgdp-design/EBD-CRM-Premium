@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { ContactItem, ContactSummaryMetrics, ContactLifecycleStatus, PeriodOption, UIStateMode } from "../../types/crm";
 import { MOCK_CONTACT_TAGS, MOCK_OWNERS } from "../../data/mockContactsData";
 import { useCRM } from "../../context/CRMContext";
+import { getLocalDateString } from "../../utils/formatters";
 import { ContactsHeader } from "./ContactsHeader";
 import { ContactMetrics } from "./ContactMetrics";
 import { ContactFilters, ContactFilterState } from "./ContactFilters";
@@ -120,6 +121,8 @@ export const ContactsPage: React.FC<ContactsPageProps> = ({
     bulkAddContactTags,
     bulkRemoveContactTags,
     deals,
+    addTask,
+    getEntityTasks,
   } = useCRM();
 
   // Contacts enriched with their live linked deals from global deals
@@ -216,7 +219,7 @@ export const ContactsPage: React.FC<ContactsPageProps> = ({
         if (filters.hasOpenDeals === "no" && hasOpenDeals) return false;
 
         // Pending Tasks Filter
-        const hasPendingTask = c.tasks && c.tasks.some((t) => !t.completed);
+        const hasPendingTask = getEntityTasks("contact", c.id).some((t) => t.status === "pending");
         if (filters.hasPendingTask === "yes" && !hasPendingTask) return false;
         if (filters.hasPendingTask === "no" && hasPendingTask) return false;
 
@@ -336,16 +339,15 @@ export const ContactsPage: React.FC<ContactsPageProps> = ({
     selectedIds.forEach((id) => {
       const c = contacts.find((item) => item.id === id);
       if (c) {
-        const newTask = {
-          id: `tsk-bulk-${Date.now()}-${c.id}`,
+        addTask({
           title: "Acompanhamento geral de relacionamento",
-          dueDate: "Amanhã",
-          assigneeName: c.ownerName,
-          completed: false,
-          priority: "alta" as const,
-        };
-        updateContact(c.id, {
-          tasks: [newTask, ...(c.tasks || [])],
+          dueDate: getLocalDateString(new Date(Date.now() + 86400000)),
+          ownerId: c.ownerId,
+          ownerName: c.ownerName,
+          priority: "high",
+          entityType: "contact",
+          entityId: c.id,
+          entityName: c.fullName,
         });
       }
     });

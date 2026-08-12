@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ContactItem } from "../../types/crm";
 import { ContactStatusBadge } from "./ContactStatusBadge";
+import { useCRM } from "../../context/CRMContext";
 import {
   MoreVertical,
   Building2,
@@ -39,9 +40,10 @@ export const ContactCard: React.FC<ContactCardProps> = ({
   onOpenCompanyQuickView,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { getEntityTasks } = useCRM();
 
   const openDealsCount = contact.deals?.filter((d) => d.status === "open").length ?? 0;
-  const pendingTask = contact.tasks?.find((t) => !t.completed);
+  const pendingTask = getEntityTasks("contact", contact.id).find((t) => t.status === "pending");
 
   return (
     <div

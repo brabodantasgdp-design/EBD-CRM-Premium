@@ -20,9 +20,11 @@ import {
   ChevronRight,
   ShieldCheck,
 } from "lucide-react";
-import { LeadItem, LeadActivity, LeadTaskItem } from "../../types/crm";
+import { LeadItem } from "../../types/crm";
 import { LeadStatusBadge } from "./LeadStatusBadge";
 import { LeadScoreBadge } from "./LeadScoreBadge";
+import { useCRM } from "../../context/CRMContext";
+import { formatDateToISO, getLocalDateString, getLocalDateTimeISO } from "../../utils/formatters";
 
 interface LeadDetailDrawerProps {
   isOpen: boolean;
@@ -50,60 +52,73 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
   const [isLoggingActivity, setIsLoggingActivity] = useState(false);
 
   const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [newTaskDate, setNewTaskDate] = useState("Amanhã 10:00");
+  const [newTaskDate, setNewTaskDate] = useState(getLocalDateString());
+
+  const {
+    addTask,
+    addActivity,
+    completeTask,
+    reopenTask,
+    getEntityTasks,
+    getEntityActivities,
+  } = useCRM();
 
   if (!isOpen || !lead) return null;
+
+  const activities = getEntityActivities("lead", lead.id).map((activity) => ({
+    ...activity,
+    authorName: activity.ownerName,
+    createdAt: activity.startAt.replace("T", " "),
+  }));
+  const tasks = getEntityTasks("lead", lead.id).map((task) => ({
+    ...task,
+    completed: task.status === "completed",
+    assigneeName: task.ownerName,
+  }));
 
   const handleLogActivity = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newActivityTitle.trim()) return;
 
-    const newAct: LeadActivity = {
-      id: `act-${Date.now()}`,
-      type: newActivityType === "followup" ? "note" : newActivityType,
+    addActivity({
+      type: newActivityType === "followup" ? "follow_up" : newActivityType,
       title: newActivityTitle.trim(),
       description: newActivityDesc.trim() || "Atividade registrada pelo usuário.",
-      authorName: "Mariana Costa",
-      createdAt: "agora",
-    };
-
-    const updatedLead: LeadItem = {
-      ...lead,
-      lastActivityText: "agora",
-      activities: [newAct, ...(lead.activities || [])],
-    };
-
-    onUpdateLead(updatedLead);
+      ownerId: lead.ownerId,
+      ownerName: lead.ownerName,
+      startAt: getLocalDateTimeISO(),
+      status: "completed",
+      entityType: "lead",
+      entityId: lead.id,
+      entityName: lead.name,
+    });
     setNewActivityTitle("");
     setNewActivityDesc("");
     setIsLoggingActivity(false);
   };
 
   const handleToggleTask = (taskId: string) => {
-    const updatedTasks = (lead.tasks || []).map((tsk) =>
-      tsk.id === taskId ? { ...tsk, completed: !tsk.completed } : tsk
-    );
-
-    onUpdateLead({ ...lead, tasks: updatedTasks });
+    const task = tasks.find((item) => item.id === taskId);
+    if (task) {
+      if (task.completed) reopenTask(taskId);
+      else completeTask(taskId);
+    }
   };
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
 
-    const newTsk: LeadTaskItem = {
-      id: `tsk-${Date.now()}`,
+    addTask({
       title: newTaskTitle.trim(),
-      dueDate: newTaskDate,
-      assigneeName: lead.ownerName,
-      completed: false,
-      priority: "media",
-    };
-
-    onUpdateLead({
-      ...lead,
-      nextTaskText: `${newTaskDate} - ${newTaskTitle.trim()}`,
-      tasks: [newTsk, ...(lead.tasks || [])],
+      dueDate: formatDateToISO(newTaskDate),
+      dueTime: "10:00",
+      ownerId: lead.ownerId,
+      ownerName: lead.ownerName,
+      priority: "medium",
+      entityType: "lead",
+      entityId: lead.id,
+      entityName: lead.name,
     });
 
     setNewTaskTitle("");
@@ -221,9 +236,9 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
               }`}
             >
               <span>Histórico e Timeline</span>
-              {lead.activities?.length ? (
+              {activities.length ? (
                 <span className="px-1.5 py-0.2 rounded-full bg-slate-100 text-[10px] text-slate-600">
-                  {lead.activities.length}
+                  {activities.length}
                 </span>
               ) : null}
             </button>
@@ -236,9 +251,9 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
               }`}
             >
               <span>Tarefas do Lead</span>
-              {lead.tasks?.length ? (
+              {tasks.length ? (
                 <span className="px-1.5 py-0.2 rounded-full bg-slate-100 text-[10px] text-slate-600">
-                  {lead.tasks.length}
+                  {tasks.length}
                 </span>
               ) : null}
             </button>
@@ -490,33 +505,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                 {/* Timeline Items List */}
                 <div className="relative pl-4 space-y-4 before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
                   {(
-                    lead.activities || [
-                      {
-                        id: "act-1",
-                        type: "call",
-                        title: "Ligação de Qualificação",
-                        description:
-                          "Interesse confirmado em migrar para plataforma Enterprise.",
-                        authorName: lead.ownerName,
-                        createdAt: "Hoje, 10:42",
-                      },
-                      {
-                        id: "act-2",
-                        type: "status_change",
-                        title: "Status Atualizado",
-                        description: "Status alterado para Em contato.",
-                        authorName: "Sistema",
-                        createdAt: "Ontem, 16:15",
-                      },
-                      {
-                        id: "act-3",
-                        type: "system",
-                        title: "Lead Criado",
-                        description: "Capturado via formulário.",
-                        authorName: "Sistema",
-                        createdAt: lead.createdAt,
-                      },
-                    ]
+                    activities
                   ).map((act) => (
                     <div key={act.id} className="relative group">
                       {/* Timeline Dot */}
@@ -588,8 +577,8 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                     Compromissos Agendados
                   </h4>
 
-                  {(lead.tasks || []).length > 0 ? (
-                    lead.tasks?.map((tsk) => (
+                  {tasks.length > 0 ? (
+                    tasks.map((tsk) => (
                       <div
                         key={tsk.id}
                         className={`p-3 rounded-xl border flex items-center justify-between gap-2 transition-colors ${

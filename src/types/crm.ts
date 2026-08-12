@@ -305,7 +305,9 @@ export interface DealItem {
   nextTaskText?: string;
   source?: string;
   tags?: string[];
+  /** @deprecated Use CRMContext.activities filtered by entityType/entityId. */
   activities?: DealActivity[];
+  /** @deprecated Use CRMContext.tasks filtered by entityType/entityId. */
   tasks?: DealTask[];
   products?: DealProduct[];
   notes?: DealNote[];
@@ -402,7 +404,9 @@ export interface CompanyItem {
   nextTaskDate?: string;
   contacts?: ContactItem[];
   deals?: ContactDeal[];
+  /** @deprecated Use CRMContext.activities filtered by entityType/entityId. */
   activities?: CompanyActivity[];
+  /** @deprecated Use CRMContext.tasks filtered by entityType/entityId. */
   tasks?: CompanyTask[];
   notesList?: CompanyNote[];
 }
@@ -451,7 +455,9 @@ export interface ContactItem {
   lastActivityText?: string;
   daysWithoutActivity?: number;
   deals?: ContactDeal[];
+  /** @deprecated Use CRMContext.activities filtered by entityType/entityId. */
   activities?: ContactActivity[];
+  /** @deprecated Use CRMContext.tasks filtered by entityType/entityId. */
   tasks?: ContactTask[];
 }
 
@@ -487,7 +493,9 @@ export interface LeadItem {
   disqualificationReason?: DisqualificationReason;
   disqualificationNote?: string;
   customFields?: LeadCustomField[];
+  /** @deprecated Use CRMContext.activities filtered by entityType/entityId. */
   activities?: LeadActivity[];
+  /** @deprecated Use CRMContext.tasks filtered by entityType/entityId. */
   tasks?: LeadTaskItem[];
   convertedDetails?: {
     contactName: string;

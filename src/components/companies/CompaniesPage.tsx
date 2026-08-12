@@ -14,6 +14,7 @@ import { CompanyItem, CompanyStatus, ContactItem, ContactDeal } from "../../type
 import { calculateCompanySummaryMetrics } from "../../data/mockCompaniesData";
 import { MOCK_CONTACT_TAGS, MOCK_OWNERS } from "../../data/mockContactsData";
 import { useCRM } from "../../context/CRMContext";
+import { getLocalDateString } from "../../utils/formatters";
 import { CompanyMetrics } from "./CompanyMetrics";
 import { CompanyFilters, CompanyFilterState } from "./CompanyFilters";
 import { CompanyTable } from "./CompanyTable";
@@ -50,6 +51,7 @@ export const CompaniesPage: React.FC<CompaniesPageProps> = ({
     bulkRemoveCompanyTags,
     addContact,
     addDeal,
+    addTask,
   } = useCRM();
 
   // Enriched companies dynamically carrying their live global contacts and global deals
@@ -256,17 +258,15 @@ export const CompaniesPage: React.FC<CompaniesPageProps> = ({
     selectedIds.forEach((id) => {
       const c = companies.find((item) => item.id === id);
       if (c) {
-        const newTask = {
-          id: `tsk-bulk-${Date.now()}-${c.id}`,
+        addTask({
           title: taskTitle,
-          dueDate: "Amanhã",
-          assigneeName: c.ownerName,
-          completed: false,
-          priority: "media" as const,
-        };
-        updateCompany(c.id, {
-          tasks: [newTask, ...(c.tasks || [])],
-          nextTaskText: `${taskTitle} (Amanhã)`,
+          dueDate: getLocalDateString(new Date(Date.now() + 86400000)),
+          ownerId: c.ownerId,
+          ownerName: c.ownerName,
+          priority: "medium",
+          entityType: "company",
+          entityId: c.id,
+          entityName: c.name,
         });
       }
     });

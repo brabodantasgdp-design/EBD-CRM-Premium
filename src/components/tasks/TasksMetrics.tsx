@@ -1,6 +1,7 @@
 import React from "react";
 import { CheckSquare, Clock, AlertTriangle, CheckCircle2, Calendar, UserX } from "lucide-react";
 import { TaskItem } from "../../types/crm";
+import { getLocalDateString } from "../../utils/formatters";
 
 interface TasksMetricsProps {
   tasks: TaskItem[];
@@ -14,7 +15,7 @@ export const TasksMetrics: React.FC<TasksMetricsProps> = ({
   onSelectQuickFilter,
 }) => {
   const activeTasks = tasks.filter((t) => !t.archivedAt);
-  const todayStr = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  const todayStr = getLocalDateString(); // YYYY-MM-DD
 
   const pendingCount = activeTasks.filter((t) => t.status === "pending").length;
   const overdueCount = activeTasks.filter(

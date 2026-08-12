@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ContactItem } from "../../types/crm";
 import { ContactStatusBadge } from "./ContactStatusBadge";
+import { useCRM } from "../../context/CRMContext";
 import {
   MoreVertical,
   Building2,
@@ -42,6 +43,7 @@ export const ContactTable: React.FC<ContactTableProps> = ({
   onOpenCompanyQuickView,
 }) => {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const { getEntityTasks } = useCRM();
 
   const allSelected =
     contacts.length > 0 && contacts.every((c) => selectedIds.includes(c.id));
@@ -76,7 +78,7 @@ export const ContactTable: React.FC<ContactTableProps> = ({
             {contacts.map((contact) => {
               const isSelected = selectedIds.includes(contact.id);
               const openDealsCount = contact.deals?.filter((d) => d.status === "open").length ?? 0;
-              const pendingTask = contact.tasks?.find((t) => !t.completed);
+              const pendingTask = getEntityTasks("contact", contact.id).find((t) => t.status === "pending");
 
               return (
                 <tr

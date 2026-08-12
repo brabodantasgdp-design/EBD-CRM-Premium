@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, Building2, User, DollarSign, Calendar, Tag, GitBranch, Save, MessageSquare } from "lucide-react";
 import { DealItem, CompanyItem, ContactItem } from "../../types/crm";
 import { PipelineConfig, PipelineStageConfig, MOCK_PIPELINES } from "../../data/mockPipelinesData";
-import { formatDateToBR, formatDateToISO } from "../../utils/formatters";
+import { formatDateToBR, formatDateToISO, getLocalDateString } from "../../utils/formatters";
 
 interface DealFormModalProps {
   isOpen: boolean;
@@ -74,7 +74,7 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
       // Default close date = +30 days (ISO format YYYY-MM-DD for date input)
       const future = new Date();
       future.setDate(future.getDate() + 30);
-      setExpectedCloseDate(future.toISOString().split("T")[0]);
+      setExpectedCloseDate(getLocalDateString(future));
       setSource("Manual");
       setTagsInput("");
       setNotesInput("");

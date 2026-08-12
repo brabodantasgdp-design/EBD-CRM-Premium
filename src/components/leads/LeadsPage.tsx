@@ -32,7 +32,9 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
   onLeadsCountChange,
 }) => {
   // Main state
-  const [leads, setLeads] = useState<LeadItem[]>(MOCK_LEADS);
+  const [leads, setLeads] = useState<LeadItem[]>(
+    MOCK_LEADS.map(({ tasks: _tasks, activities: _activities, ...lead }) => lead)
+  );
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 

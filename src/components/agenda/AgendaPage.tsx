@@ -219,6 +219,20 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({
     setSelectedSlot(null);
   };
 
+  const handleCompleteSelectedActivity = () => {
+    if (selectedItemDetail?.itemType !== "activity") return;
+    completeActivity(selectedItemDetail.item.id);
+    onShowToast("Atividade marcada como concluída.");
+    setSelectedItemDetail(null);
+  };
+
+  const handleCancelSelectedActivity = () => {
+    if (selectedItemDetail?.itemType !== "activity") return;
+    cancelActivity(selectedItemDetail.item.id);
+    onShowToast("Atividade cancelada.");
+    setSelectedItemDetail(null);
+  };
+
   return (
     <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6 pb-28">
       {/* Top Header */}
@@ -833,6 +847,22 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({
             </div>
 
             <div className="pt-2 flex items-center justify-end gap-2">
+              {selectedItemDetail.itemType === "activity" && (
+                <>
+                  <button
+                    onClick={handleCompleteSelectedActivity}
+                    className="px-4 py-2 bg-emerald-600 rounded-xl text-xs font-bold text-white"
+                  >
+                    Marcar concluída
+                  </button>
+                  <button
+                    onClick={handleCancelSelectedActivity}
+                    className="px-4 py-2 bg-rose-600 rounded-xl text-xs font-bold text-white"
+                  >
+                    Cancelar atividade
+                  </button>
+                </>
+              )}
               <button
                 onClick={() => setSelectedItemDetail(null)}
                 className="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200"
