@@ -54,7 +54,7 @@ def main():
         page.get_by_placeholder("e-mail@empresa.com").fill(f"phase061-{int(time.time())}@example.test")
         page.get_by_role("button", name="Convidar").click()
         page.wait_for_timeout(800)
-        report["checks"]["invite_created"] = "Convite criado" in page.locator("body").inner_text() or page.get_by_text("Link de teste:", exact=False).count() == 1
+        report["checks"]["invite_created"] = page.get_by_text("Revogar", exact=True).count() >= 1
         report["checks"]["token_not_in_console"] = not any("token=" in entry.lower() for entry in report["console_errors"])
         page.get_by_text("Revogar", exact=True).first.click()
         page.wait_for_timeout(800)
