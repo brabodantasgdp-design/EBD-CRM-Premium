@@ -24,9 +24,9 @@ def currency(text: str) -> float:
 
 
 def nav(page: Page, label: str) -> None:
-    page.locator("aside").get_by_role("button", name=re.compile(rf"^{re.escape(label)}(?:\s|$)")).click()
+    page.locator("aside").get_by_role("link", name=re.compile(rf"^{re.escape(label)}(?:\s|$)")).click()
     route_by_label = {
-        "Dashboard": "/",
+        "Dashboard": "/dashboard",
         "Leads": "/leads",
         "Contatos": "/contatos",
         "Empresas": "/empresas",

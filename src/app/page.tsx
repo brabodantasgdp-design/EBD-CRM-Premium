@@ -1,5 +1,5 @@
-import { AppContent } from "../App";
+import { redirect } from "next/navigation";
 
 export default function DashboardPage() {
-  return <AppContent />;
+  redirect("/dashboard");
 }

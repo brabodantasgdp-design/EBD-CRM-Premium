@@ -7,7 +7,7 @@ from playwright.sync_api import expect, sync_playwright
 
 BASE_URL = "http://127.0.0.1:3000"
 ROUTES = [
-    ("Dashboard", "/"),
+    ("Dashboard", "/dashboard"),
     ("Leads", "/leads"),
     ("Contatos", "/contatos"),
     ("Empresas", "/empresas"),
@@ -44,9 +44,9 @@ def main():
         expect(modal).not_to_be_visible()
         page.wait_for_timeout(1000)
         expect(page.locator('[data-testid^="lead-row-"]').filter(has_text=lead_name)).to_be_visible()
-        page.locator("aside").get_by_role("button", name=re.compile("Negócios")).click()
+        page.locator("aside").get_by_role("link", name=re.compile("Negócios")).click()
         page.wait_for_url(re.compile(r"/negocios/?$"))
-        page.locator("aside").get_by_role("button", name=re.compile("Leads")).click()
+        page.locator("aside").get_by_role("link", name=re.compile("Leads")).click()
         page.wait_for_url(re.compile(r"/leads/?$"))
         expect(page.locator('[data-testid^="lead-row-"]').filter(has_text=lead_name)).to_be_visible()
         report["state_persistence"] = True

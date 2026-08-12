@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { CRMDataProvider } from "../context/CRMContext";
+import { Providers } from "./providers";
 import "../index.css";
 
 export const metadata: Metadata = {
@@ -12,7 +12,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
   return (
     <html lang="pt-BR">
       <body>
-        <CRMDataProvider>{children}</CRMDataProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

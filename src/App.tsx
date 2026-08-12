@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "./components/layout/Sidebar";
 import { Topbar } from "./components/layout/Topbar";
 import { MobileNavigation } from "./components/layout/MobileNavigation";
@@ -30,7 +30,6 @@ import { CompaniesPage } from "./components/companies/CompaniesPage";
 import { DealsPage } from "./components/deals/DealsPage";
 import { TasksPage } from "./components/tasks/TasksPage";
 import { AgendaPage } from "./components/agenda/AgendaPage";
-import { CRMDataProvider } from "./context/CRMContext";
 import { useCRM } from "./context/CRMContext";
 import { calculateDashboardMetrics, calculatePipelineStages, calculateLeadSources, calculateWeightedForecast } from "./utils/crmMetrics";
 import { getLocalDateString } from "./utils/formatters";
@@ -51,25 +50,16 @@ import {
 } from "./data/mockCrmData";
 import { Info } from "lucide-react";
 
-export default function App() {
-  return (
-    <CRMDataProvider>
-      <AppContent />
-    </CRMDataProvider>
-  );
-}
-
-export function AppContent() {
+export function AppContent({ module = "dashboard" }: { module?: string }) {
   const router = useRouter();
-  const pathname = usePathname();
   const { leads, deals, tasks, activities } = useCRM();
   const dashboardMetrics = calculateDashboardMetrics(deals, leads);
   const dashboardStages = calculatePipelineStages(deals);
   const dashboardLeadSources = calculateLeadSources(leads);
   const weightedForecast = calculateWeightedForecast(deals);
-  const activeTab = pathname === "/" || pathname === "/dashboard" ? "dashboard" : pathname.slice(1);
+  const activeTab = module;
   const navigateTo = (tab: string) => {
-    router.push(tab === "dashboard" ? "/" : `/${tab}`);
+    router.push(`/${tab === "dashboard" ? "dashboard" : tab}`);
   };
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
@@ -167,24 +157,24 @@ export function AppContent() {
 
         {/* Dynamic Page Views */}
         <main className="flex-1 p-3 sm:p-6 max-w-7xl w-full mx-auto pb-6 lg:pb-12 min-w-0">
-          {activeTab === "leads" ? (
+          {module === "leads" ? (
             <LeadsPage
               onShowToast={(msg) => showToast(msg)}
               currentPeriod={currentPeriod}
             />
-          ) : activeTab === "contatos" ? (
+          ) : module === "contatos" ? (
             <ContactsPage
               onShowToast={(msg) => showToast(msg)}
               currentPeriod={currentPeriod}
             />
-          ) : activeTab === "empresas" ? (
+          ) : module === "empresas" ? (
             <CompaniesPage onOpenContactDetail={() => navigateTo("contatos")} />
-          ) : activeTab === "negocios" ? (
+          ) : module === "negocios" ? (
             <DealsPage
               onShowToast={(msg) => showToast(msg)}
               currentPeriod={currentPeriod}
             />
-          ) : activeTab === "tarefas" ? (
+          ) : module === "tarefas" ? (
             <TasksPage
               onShowToast={(msg) => showToast(msg)}
               onNavigateToEntity={(type) => {
@@ -194,7 +184,7 @@ export function AppContent() {
                 else if (type === "lead") navigateTo("leads");
               }}
             />
-          ) : activeTab === "agenda" ? (
+          ) : module === "agenda" ? (
             <AgendaPage
               onShowToast={(msg) => showToast(msg)}
               onNavigateToEntity={(type) => {
@@ -204,7 +194,7 @@ export function AppContent() {
                 else if (type === "lead") navigateTo("leads");
               }}
             />
-          ) : activeTab !== "dashboard" ? (
+          ) : module !== "dashboard" ? (
             <ModulePlaceholder
               moduleName={getTabTitle(activeTab)}
               onReturnToDashboard={() => navigateTo("dashboard")}
