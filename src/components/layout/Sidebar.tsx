@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   LayoutDashboard,
   Users,
@@ -199,9 +200,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             const isActive = activeTab === item.id;
 
             return (
-              <button
+              <Link
                 key={item.id}
-                onClick={() => handleSelectNav(item.id)}
+                href={`/${item.id}`}
+                onClick={onMobileClose}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-200 relative group ${
                   isActive
                     ? "bg-indigo-600 text-white shadow-md shadow-indigo-900/40 font-semibold"
@@ -249,15 +251,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {item.label}
                   </div>
                 )}
-              </button>
+              </Link>
             );
           })}
 
           <div className="my-2 border-t border-slate-800/80" />
 
           {/* Configurações */}
-          <button
-            onClick={() => handleSelectNav("configuracoes")}
+          <Link
+            href="/configuracoes"
+            onClick={onMobileClose}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-200 ${
               activeTab === "configuracoes"
                 ? "bg-indigo-600 text-white font-semibold"
@@ -268,7 +271,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {(!collapsed || mobileOpen) && (
               <span className="flex-1 text-left truncate">Configurações</span>
             )}
-          </button>
+          </Link>
         </div>
 
         {/* User Profile Footer */}

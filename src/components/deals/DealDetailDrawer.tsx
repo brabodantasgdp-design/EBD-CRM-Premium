@@ -775,6 +775,7 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
                   tasks.map((task) => (
                     <div
                       key={task.id}
+                      data-task-id={task.id}
                       className={`p-3 bg-white rounded-xl border flex items-center justify-between gap-3 transition-colors ${
                         task.completed
                           ? "bg-slate-50/60 border-slate-200 opacity-60"
@@ -806,9 +807,9 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
 
                       <span
                         className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                          task.priority === "alta"
+                          task.priority === "high"
                             ? "bg-rose-100 text-rose-800"
-                            : task.priority === "media"
+                            : task.priority === "medium"
                             ? "bg-amber-100 text-amber-800"
                             : "bg-slate-100 text-slate-600"
                         }`}

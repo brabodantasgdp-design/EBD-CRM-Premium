@@ -112,6 +112,8 @@ export const DealsKanban: React.FC<DealsKanbanProps> = ({
           return (
             <div
               key={stage.id}
+              data-testid={`kanban-stage-${stage.id}`}
+              data-stage-id={stage.id}
               onDragOver={(e) => handleDragOver(e, stage.id)}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, stage)}
@@ -180,6 +182,8 @@ export const DealsKanban: React.FC<DealsKanbanProps> = ({
                     return (
                       <div
                         key={deal.id}
+                        data-testid={`kanban-card-${deal.id}`}
+                        data-deal-id={deal.id}
                         draggable
                         onDragStart={(e) => handleDragStart(e, deal.id)}
                         className={`bg-white rounded-xl border p-3.5 shadow-2xs hover:shadow-md transition-all group relative cursor-grab active:cursor-grabbing ${

@@ -9,6 +9,8 @@ coverage/
 
 # Local tooling and generated artifacts
 .vite/
+.next/
+*.tsbuildinfo
 .cache/
 *.local
 *.tmp

@@ -641,6 +641,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({
                         <tr
                           key={task.id}
                           data-testid={`task-row-${task.id}`}
+                          data-task-id={task.id}
                           className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors ${
                             isSelected ? "bg-indigo-50/40 dark:bg-indigo-950/20" : ""
                           }`}

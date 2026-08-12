@@ -132,10 +132,10 @@ export const CompanyTable: React.FC<CompanyTableProps> = ({
                         </button>
                         <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500 font-medium">
                           <span className="truncate max-w-[140px]">{company.segment}</span>
-                          {company.city && (
+                          {company.address?.city && (
                             <>
                               <span>•</span>
-                              <span>{company.city}</span>
+                              <span>{company.address.city}</span>
                             </>
                           )}
                         </div>

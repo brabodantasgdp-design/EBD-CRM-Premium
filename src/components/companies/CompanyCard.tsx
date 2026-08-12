@@ -77,7 +77,7 @@ export const CompanyCard: React.FC<CompanyCardProps> = ({
             </button>
             <div className="text-xs font-medium text-slate-500 truncate mt-0.5">
               {company.segment}
-              {company.city && ` • ${company.city}`}
+              {company.address?.city && ` • ${company.address.city}`}
             </div>
           </div>
         </div>

@@ -470,6 +470,7 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({
                         {slotActs.map((act) => (
                           <div
                             key={act.id}
+                            data-activity-id={act.id}
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedItemDetail({ item: act, itemType: "activity" });
@@ -491,6 +492,7 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({
                         {slotTasks.map((tsk) => (
                           <div
                             key={tsk.id}
+                            data-task-id={tsk.id}
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedItemDetail({ item: tsk, itemType: "task" });
@@ -677,6 +679,7 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({
                   {dayActs.slice(0, 2).map((a) => (
                     <div
                       key={a.id}
+                      data-activity-id={a.id}
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedItemDetail({ item: a, itemType: "activity" });
@@ -750,6 +753,7 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({
             {combinedAgendaItems.tasks.map((t) => (
               <div
                 key={t.id}
+                data-task-id={t.id}
                 onClick={() => setSelectedItemDetail({ item: t, itemType: "task" })}
                 className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer hover:border-amber-500 transition-colors"
               >

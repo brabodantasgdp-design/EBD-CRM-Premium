@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   LayoutDashboard,
   UserCheck,
@@ -69,9 +70,9 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
             const isActive = activeTab === tab.id;
 
             return (
-              <button
+              <Link
                 key={tab.id}
-                onClick={() => onTabSelect(tab.id)}
+                href={`/${tab.id === "dashboard" ? "dashboard" : tab.id}`}
                 className={`flex flex-col items-center justify-center min-w-[56px] min-h-[44px] py-1 px-2 rounded-xl transition-colors relative ${
                   isActive
                     ? "text-indigo-600 font-bold"
@@ -89,7 +90,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 <span className="text-[10px] mt-0.5 tracking-tight font-medium">
                   {tab.label}
                 </span>
-              </button>
+              </Link>
             );
           })}
 
@@ -129,12 +130,10 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 const isActive = activeTab === item.id;
 
                 return (
-                  <button
+                  <Link
                     key={item.id}
-                    onClick={() => {
-                      onTabSelect(item.id);
-                      setMoreSheetOpen(false);
-                    }}
+                    href={`/${item.id}`}
+                    onClick={() => setMoreSheetOpen(false)}
                     className={`flex flex-col items-center p-3 rounded-2xl transition-colors border ${
                       isActive
                         ? "bg-indigo-50 border-indigo-200 text-indigo-700 font-bold"
@@ -145,7 +144,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
                     <span className="text-[11px] text-center font-semibold truncate w-full">
                       {item.label}
                     </span>
-                  </button>
+                  </Link>
                 );
               })}
             </div>

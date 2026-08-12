@@ -1,4 +1,7 @@
+"use client";
+
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "./components/layout/Sidebar";
 import { Topbar } from "./components/layout/Topbar";
 import { MobileNavigation } from "./components/layout/MobileNavigation";
@@ -27,7 +30,6 @@ import { CompaniesPage } from "./components/companies/CompaniesPage";
 import { DealsPage } from "./components/deals/DealsPage";
 import { TasksPage } from "./components/tasks/TasksPage";
 import { AgendaPage } from "./components/agenda/AgendaPage";
-import { CRMDataProvider } from "./context/CRMContext";
 import { useCRM } from "./context/CRMContext";
 import { calculateDashboardMetrics, calculatePipelineStages, calculateLeadSources, calculateWeightedForecast } from "./utils/crmMetrics";
 import { getLocalDateString } from "./utils/formatters";
@@ -48,21 +50,17 @@ import {
 } from "./data/mockCrmData";
 import { Info } from "lucide-react";
 
-export default function App() {
-  return (
-    <CRMDataProvider>
-      <AppContent />
-    </CRMDataProvider>
-  );
-}
-
-function AppContent() {
+export function AppContent({ module = "dashboard" }: { module?: string }) {
+  const router = useRouter();
   const { leads, deals, tasks, activities } = useCRM();
   const dashboardMetrics = calculateDashboardMetrics(deals, leads);
   const dashboardStages = calculatePipelineStages(deals);
   const dashboardLeadSources = calculateLeadSources(leads);
   const weightedForecast = calculateWeightedForecast(deals);
-  const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const activeTab = module;
+  const navigateTo = (tab: string) => {
+    router.push(`/${tab === "dashboard" ? "dashboard" : tab}`);
+  };
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
   const [currentPeriod, setCurrentPeriod] = useState<PeriodOption>("este_mes");
@@ -133,7 +131,7 @@ function AppContent() {
         {/* Sidebar Navigation */}
       <Sidebar
         activeTab={activeTab}
-        onTabSelect={(id) => setActiveTab(id)}
+        onTabSelect={navigateTo}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         mobileOpen={mobileSidebarOpen}
@@ -159,47 +157,47 @@ function AppContent() {
 
         {/* Dynamic Page Views */}
         <main className="flex-1 p-3 sm:p-6 max-w-7xl w-full mx-auto pb-6 lg:pb-12 min-w-0">
-          {activeTab === "leads" ? (
+          {module === "leads" ? (
             <LeadsPage
               onShowToast={(msg) => showToast(msg)}
               currentPeriod={currentPeriod}
             />
-          ) : activeTab === "contatos" ? (
+          ) : module === "contatos" ? (
             <ContactsPage
               onShowToast={(msg) => showToast(msg)}
               currentPeriod={currentPeriod}
             />
-          ) : activeTab === "empresas" ? (
-            <CompaniesPage onOpenContactDetail={() => setActiveTab("contatos")} />
-          ) : activeTab === "negocios" ? (
+          ) : module === "empresas" ? (
+            <CompaniesPage onOpenContactDetail={() => navigateTo("contatos")} />
+          ) : module === "negocios" ? (
             <DealsPage
               onShowToast={(msg) => showToast(msg)}
               currentPeriod={currentPeriod}
             />
-          ) : activeTab === "tarefas" ? (
+          ) : module === "tarefas" ? (
             <TasksPage
               onShowToast={(msg) => showToast(msg)}
               onNavigateToEntity={(type) => {
-                if (type === "deal") setActiveTab("negocios");
-                else if (type === "contact") setActiveTab("contatos");
-                else if (type === "company") setActiveTab("empresas");
-                else if (type === "lead") setActiveTab("leads");
+                if (type === "deal") navigateTo("negocios");
+                else if (type === "contact") navigateTo("contatos");
+                else if (type === "company") navigateTo("empresas");
+                else if (type === "lead") navigateTo("leads");
               }}
             />
-          ) : activeTab === "agenda" ? (
+          ) : module === "agenda" ? (
             <AgendaPage
               onShowToast={(msg) => showToast(msg)}
               onNavigateToEntity={(type) => {
-                if (type === "deal") setActiveTab("negocios");
-                else if (type === "contact") setActiveTab("contatos");
-                else if (type === "company") setActiveTab("empresas");
-                else if (type === "lead") setActiveTab("leads");
+                if (type === "deal") navigateTo("negocios");
+                else if (type === "contact") navigateTo("contatos");
+                else if (type === "company") navigateTo("empresas");
+                else if (type === "lead") navigateTo("leads");
               }}
             />
-          ) : activeTab !== "dashboard" ? (
+          ) : module !== "dashboard" ? (
             <ModulePlaceholder
               moduleName={getTabTitle(activeTab)}
-              onReturnToDashboard={() => setActiveTab("dashboard")}
+              onReturnToDashboard={() => navigateTo("dashboard")}
             />
           ) : (
             <>
@@ -330,7 +328,7 @@ function AppContent() {
       {/* Mobile Bottom Navigation Bar */}
       <MobileNavigation
         activeTab={activeTab}
-        onTabSelect={(id) => setActiveTab(id)}
+        onTabSelect={navigateTo}
         onOpenQuickCreate={() => handleOpenQuickCreate("lead")}
       />
 

@@ -119,7 +119,7 @@ export const CompaniesPage: React.FC<CompaniesPageProps> = ({
         const matchLegal = (comp.legalName || "").toLowerCase().includes(q);
         const matchCnpj = cleanCnpj.length >= 3 && (comp.cnpj || "").replace(/\D/g, "").includes(cleanCnpj);
         const matchDomain = (comp.domain || "").toLowerCase().includes(q);
-        const matchCity = (comp.city || comp.address?.city || "").toLowerCase().includes(q);
+        const matchCity = (comp.address?.city || "").toLowerCase().includes(q);
         const matchContact = comp.contacts?.some((c) => c.fullName.toLowerCase().includes(q));
 
         if (!matchName && !matchLegal && !matchCnpj && !matchDomain && !matchCity && !matchContact) {
