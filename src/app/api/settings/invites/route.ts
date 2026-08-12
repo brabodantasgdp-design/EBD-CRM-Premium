@@ -14,9 +14,11 @@ export async function POST(request: Request) {
   if (!user.user || !email || !role || !["admin", "manager", "sales", "viewer"].includes(role)) return NextResponse.json({ error: "Convite inválido" }, { status: 400 });
   const token = randomBytes(32).toString("base64url");
   const tokenHash = createHash("sha256").update(token).digest("hex");
-  const { data, error } = await supabase.from("organization_invites").insert({ organization_id: organization.id, email, role, token_hash: tokenHash, invited_by: user.user.id, expires_at: new Date(Date.now() + 7 * 86400000).toISOString() }).select("id, email, role, status, expires_at, created_at").single();
-  if (error) return NextResponse.json({ error: error.code === "23505" ? "Já existe um convite pendente para este e-mail" : "Não foi possível criar o convite" }, { status: 400 });
-  await supabase.rpc("create_audit_log", { target_org: organization.id, target_action: "member.invited", target_entity_type: "organization_invite", target_entity_id: data.id, target_metadata: { role, email } });
+  const expiresAt = new Date(Date.now() + 7 * 86400000).toISOString();
+  const { data: inviteId, error } = await supabase.rpc("create_organization_invite", { target_org: organization.id, target_email: email, target_role: role, target_token_hash: tokenHash, target_expires_at: expiresAt });
+  if (error || !inviteId) return NextResponse.json({ error: error?.code === "23505" ? "Já existe um convite pendente para este e-mail" : "Não foi possível criar o convite" }, { status: 400 });
+  const { data, error: readError } = await supabase.from("organization_invites").select("id, email, role, status, expires_at, created_at").eq("id", inviteId).single();
+  if (readError || !data) return NextResponse.json({ error: "Convite criado, mas não foi possível carregá-lo" }, { status: 500 });
   const url = `${new URL(request.url).origin}/convite?token=${encodeURIComponent(token)}`;
   return NextResponse.json({ invite: data, inviteUrl: url, developmentOnly: true });
 }

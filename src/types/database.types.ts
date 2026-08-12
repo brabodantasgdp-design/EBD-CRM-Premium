@@ -43,6 +43,7 @@ export type Database = {
       is_active_admin: { Args: { target_organization: string; target_user?: string }; Returns: boolean };
       can_manage_members: { Args: { target_organization: string; target_user?: string }; Returns: boolean };
       create_audit_log: { Args: { target_org: string; target_action: string; target_entity_type: string; target_entity_id?: string | null; target_metadata?: Json }; Returns: undefined };
+      create_organization_invite: { Args: { target_org: string; target_email: string; target_role: string; target_token_hash: string; target_expires_at: string }; Returns: string };
       change_member_role: { Args: { target_member: string; target_role: string }; Returns: boolean };
       set_member_status: { Args: { target_member: string; target_status: string }; Returns: boolean };
       revoke_organization_invite: { Args: { target_invite: string }; Returns: boolean };

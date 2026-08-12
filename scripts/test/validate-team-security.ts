@@ -23,7 +23,8 @@ const salesMember = (await owner.from("organization_members").select("id, role, 
 const report: Record<string, unknown> = {};
 
 const inviteEmail = `phase06-${Date.now()}@example.test`;
-const invite = await owner.from("organization_invites").insert({ organization_id: orgA.id, email: inviteEmail, role: "sales", token_hash: `phase06-${Date.now()}`, invited_by: ownerUser.id, expires_at: new Date(Date.now() + 3600000).toISOString() }).select("id, status").single();
+const inviteId = await owner.rpc("create_organization_invite", { target_org: orgA.id, target_email: inviteEmail, target_role: "sales", target_token_hash: `phase06-${Date.now()}`, target_expires_at: new Date(Date.now() + 3600000).toISOString() });
+const invite = inviteId.data ? await owner.from("organization_invites").select("id, status").eq("id", inviteId.data).single() : { data: null, error: inviteId.error };
 report.ownerInvite = { created: !!invite.data && !invite.error, error: invite.error?.message ?? null };
 if (invite.data) {
   const revoked = await owner.rpc("revoke_organization_invite", { target_invite: invite.data.id });
