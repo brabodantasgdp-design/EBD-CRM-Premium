@@ -373,7 +373,13 @@ export const ContactsPage: React.FC<ContactsPageProps> = ({
       {/* Header */}
       <ContactsHeader
         onOpenNewContact={() => setFormModalState({ open: true, contact: null })}
-        onOpenImport={() => setImportModalOpen(true)}
+        onOpenImport={() => {
+          if (commercialPersistence) {
+            onShowToast("Importação em lote ainda não está habilitada para persistência real.");
+            return;
+          }
+          setImportModalOpen(true);
+        }}
         importDisabled={commercialPersistence}
         onOpenExport={() => setExportMenuOpen(true)}
         selectedCount={selectedIds.length}
@@ -567,6 +573,11 @@ export const ContactsPage: React.FC<ContactsPageProps> = ({
         <ContactImportModal
           onClose={() => setImportModalOpen(false)}
           onImportSuccess={(newContacts) => {
+            if (commercialPersistence) {
+              onShowToast("Importação em lote ainda não está habilitada para persistência real.");
+              setImportModalOpen(false);
+              return;
+            }
             newContacts.forEach((nc) => addContact(nc));
           }}
           onShowToast={onShowToast}
