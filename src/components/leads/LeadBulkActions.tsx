@@ -76,7 +76,7 @@ export const LeadBulkActions: React.FC<LeadBulkActionsProps> = ({
                   className="fixed inset-0 z-30"
                   onClick={() => setActiveMenu(null)}
                 />
-                <div className="absolute left-0 bottom-full mb-2 w-48 bg-slate-800 rounded-xl shadow-xl border border-slate-700 py-1 z-[60] text-xs">
+                <div className="fixed left-1/2 -translate-x-1/2 bottom-20 lg:bottom-16 mb-2 w-48 bg-slate-800 rounded-xl shadow-xl border border-slate-700 py-1 z-[60] text-xs">
                   <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700">
                     Atribuir Responsável
                   </div>
@@ -122,7 +122,7 @@ export const LeadBulkActions: React.FC<LeadBulkActionsProps> = ({
                   className="fixed inset-0 z-30"
                   onClick={() => setActiveMenu(null)}
                 />
-                <div className="absolute left-0 bottom-full mb-2 w-44 bg-slate-800 rounded-xl shadow-xl border border-slate-700 py-1 z-[60] text-xs">
+                <div className="fixed left-1/2 -translate-x-1/2 bottom-20 lg:bottom-16 mb-2 w-44 bg-slate-800 rounded-xl shadow-xl border border-slate-700 py-1 z-[60] text-xs">
                   <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700">
                     Alterar Status
                   </div>
@@ -169,7 +169,7 @@ export const LeadBulkActions: React.FC<LeadBulkActionsProps> = ({
                   className="fixed inset-0 z-30"
                   onClick={() => setActiveMenu(null)}
                 />
-                <div className="absolute left-0 bottom-full mb-2 w-44 bg-slate-800 rounded-xl shadow-xl border border-slate-700 py-1 z-[60] text-xs">
+                <div className="fixed left-1/2 -translate-x-1/2 bottom-20 lg:bottom-16 mb-2 w-44 bg-slate-800 rounded-xl shadow-xl border border-slate-700 py-1 z-[60] text-xs">
                   <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700">
                     Adicionar Tag
                   </div>
@@ -207,7 +207,7 @@ export const LeadBulkActions: React.FC<LeadBulkActionsProps> = ({
             {activeMenu === "remove_tag" && (
               <>
                 <div className="fixed inset-0 z-30" onClick={() => setActiveMenu(null)} />
-                <div className="absolute left-0 bottom-full mb-2 w-44 bg-slate-800 rounded-xl shadow-xl border border-slate-700 py-1 z-[60] text-xs">
+                <div className="fixed left-1/2 -translate-x-1/2 bottom-20 lg:bottom-16 mb-2 w-44 bg-slate-800 rounded-xl shadow-xl border border-slate-700 py-1 z-[60] text-xs">
                   <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700">
                     Remover Tag
                   </div>
