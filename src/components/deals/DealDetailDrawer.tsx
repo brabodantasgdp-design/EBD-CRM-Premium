@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   X,
   Building2,
@@ -84,9 +84,23 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
   const [prodName, setProdName] = useState("");
   const [prodQty, setProdQty] = useState("1");
   const [prodPrice, setProdPrice] = useState("");
+  const [dealProposals, setDealProposals] = useState<Array<{ id: string; number: string; title: string; status: string; total: number }>>([]);
 
   // Note Form state
   const [noteContent, setNoteContent] = useState("");
+
+  useEffect(() => {
+    if (!isOpen || !deal) {
+      setDealProposals([]);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/commercial/proposals?dealId=${deal.id}`, { cache: "no-store" })
+      .then((response) => response.ok ? response.json() as Promise<{ proposals: Array<{ id: string; number: string; title: string; status: string; total: number }> }> : Promise.reject(new Error("proposal_load")))
+      .then((payload) => { if (!cancelled) setDealProposals(payload.proposals ?? []); })
+      .catch(() => { if (!cancelled) setDealProposals([]); });
+    return () => { cancelled = true; };
+  }, [deal, isOpen]);
 
   if (!isOpen || !deal) return null;
 
@@ -100,7 +114,8 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
     completed: task.status === "completed",
     assigneeName: task.ownerName,
   }));
-  const products = deal.products || [];
+  // Produtos legados em DealItem são deprecated; a fonte operacional é proposal_items.
+  const products: DealProduct[] = [];
   const notes = deal.notes || [];
   const stageHistory = deal.stageHistory || [];
 
@@ -175,30 +190,11 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
   // 3. Add Product Handler
   const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!prodName.trim() || !prodPrice) return;
-
-    const qty = parseInt(prodQty, 10) || 1;
-    const price = parseFloat(prodPrice.replace(/[^\d.]/g, "")) || 0;
-
-    const newProduct: DealProduct = {
-      id: `prod-${Date.now()}`,
-      name: prodName.trim(),
-      quantity: qty,
-      unitPrice: price,
-      totalPrice: qty * price,
-    };
-
-    const updatedProducts = [...products, newProduct];
-    updateDeal(deal.id, { products: updatedProducts });
-
-    setProdName("");
-    setProdQty("1");
-    setProdPrice("");
+    // Produtos agora são persistidos em proposal_items; não duplicar estado em Deal.
   };
 
   const handleRemoveProduct = (prodId: string) => {
-    const updatedProducts = products.filter((p) => p.id !== prodId);
-    updateDeal(deal.id, { products: updatedProducts });
+    void prodId;
   };
 
   const handleSyncDealValueFromProducts = () => {
@@ -571,7 +567,7 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
               {/* Form to log activity */}
               <form
                 onSubmit={handleAddActivity}
-                className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3"
+                className="pointer-events-none p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3 opacity-60"
               >
                 <h4 className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
                   <Phone className="w-4 h-4 text-indigo-600" />
@@ -826,6 +822,11 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
           {/* TAB 4: PRODUTOS */}
           {activeTab === "products" && (
             <div className="space-y-6">
+              <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-indigo-700">Propostas persistentes</p>
+                <p className="mt-1 text-sm text-indigo-900">Produtos comerciais deste negócio são mantidos como snapshots nas propostas.</p>
+                {dealProposals.length === 0 ? <p className="mt-3 text-xs text-indigo-700">Nenhuma proposta vinculada a este negócio.</p> : <div className="mt-3 space-y-2">{dealProposals.map((proposal) => <div key={proposal.id} className="flex items-center justify-between rounded-xl bg-white p-3 text-sm"><span><b>{proposal.number}</b> · {proposal.title}</span><span className="font-bold">{formatCurrency(proposal.total)} · {proposal.status}</span></div>)}</div>}
+              </div>
               {/* Form to add product */}
               <form
                 onSubmit={handleAddProduct}
@@ -877,7 +878,7 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
                     disabled={!prodName.trim() || !prodPrice}
                     className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-xs cursor-pointer shrink-0 disabled:opacity-50"
                   >
-                    Adicionar Produto
+                    Gerenciado por propostas
                   </button>
                 </div>
               </form>

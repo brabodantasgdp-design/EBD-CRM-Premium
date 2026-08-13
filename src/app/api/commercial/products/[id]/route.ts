@@ -1,0 +1,6 @@
+import { NextResponse } from "next/server";
+import { archiveProduct, updateProduct } from "../../../../../lib/crm/products";
+import { getCurrentOrganization, requireUser } from "../../../../../lib/supabase/auth";
+type Context = { params: Promise<{ id: string }> };
+export async function PATCH(request: Request, context: Context) { const { supabase } = await requireUser(); const organization = await getCurrentOrganization(); if (!supabase || !organization) return NextResponse.json({ error: "Acesso negado" }, { status: 403 }); try { return NextResponse.json({ product: await updateProduct(supabase, organization.id, (await context.params).id, await request.json()) }); } catch { return NextResponse.json({ error: "Não foi possível atualizar produto" }, { status: 400 }); } }
+export async function DELETE(_: Request, context: Context) { const { supabase } = await requireUser(); const organization = await getCurrentOrganization(); if (!supabase || !organization) return NextResponse.json({ error: "Acesso negado" }, { status: 403 }); try { return NextResponse.json({ product: await archiveProduct(supabase, organization.id, (await context.params).id) }); } catch { return NextResponse.json({ error: "Não foi possível arquivar produto" }, { status: 400 }); } }
