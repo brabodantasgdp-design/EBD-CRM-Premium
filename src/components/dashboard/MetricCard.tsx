@@ -108,7 +108,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({ metric }) => {
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
               <TrendingUp className="h-3 w-3" />
-              <span>+3,2 p.p.</span>
+              <span>Fórmula real</span>
             </span>
             <span className="text-slate-400 font-medium truncate">
               vs. período anterior

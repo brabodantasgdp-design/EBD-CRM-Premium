@@ -87,7 +87,7 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
                     }}
                   />
                   <span className="absolute right-2 text-[9px] font-bold text-slate-500">
-                    Conv: {stage.conversionRatePercent.toFixed(1)}%
+                    {stage.conversionRatePercent > 0 ? `Conv: ${stage.conversionRatePercent.toFixed(1)}%` : ""}
                   </span>
                 </div>
               </div>
