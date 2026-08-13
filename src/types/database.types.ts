@@ -1408,6 +1408,39 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      replace_proposal_items: {
+        Args: {
+          target_items: Json
+          target_org: string
+          target_proposal: string
+        }
+        Returns: {
+          archived_at: string | null
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string
+          currency: string
+          deal_id: string
+          discount: number
+          id: string
+          notes: string | null
+          number: string
+          organization_id: string
+          status: string
+          subtotal: number
+          title: string
+          total: number
+          updated_at: string
+          valid_until: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "proposals"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       revoke_organization_invite: {
         Args: { target_invite: string }
         Returns: boolean

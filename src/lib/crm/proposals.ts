@@ -43,6 +43,13 @@ export async function updateProposal(client: Client, organizationId: string, id:
   return data;
 }
 
+export async function replaceProposalItems(client: Client, organizationId: string, proposalId: string, items: ProposalItemInput[]) {
+  const payload: Json[] = items.map((item, position) => ({ product_id: item.productId ?? null, description: item.description?.trim() ?? "", quantity: Number(item.quantity), unit_price: item.unitPrice == null ? null : Number(item.unitPrice), discount: Number(item.discount ?? 0), position }));
+  const { data, error } = await client.rpc("replace_proposal_items", { target_org: organizationId, target_proposal: proposalId, target_items: payload });
+  if (error) throw error;
+  return getProposal(client, organizationId, Array.isArray(data) ? data[0]?.id : data?.id ?? proposalId);
+}
+
 export async function archiveProposal(client: Client, organizationId: string, id: string) {
   const { data, error } = await client.from("proposals").update({ archived_at: new Date().toISOString() }).eq("organization_id", organizationId).eq("id", id).select("*").single();
   if (error) throw error;
