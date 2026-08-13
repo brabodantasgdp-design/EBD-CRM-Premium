@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentOrganization, requireUser } from "../../../../lib/supabase/auth";
 import { createLead, listLeads } from "../../../../lib/crm/leads";
 import { cookies } from "next/headers";
+import { dispatchAutomationEvent } from "../../../../lib/crm/automations";
 
 export async function GET() {
   const { supabase, user } = await requireUser();
@@ -28,7 +29,9 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== "object") return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
   try {
-    return NextResponse.json({ lead: await createLead(supabase, organization.id, user.id, body) }, { status: 201 });
+    const lead = await createLead(supabase, organization.id, user.id, body);
+    try { await dispatchAutomationEvent(supabase, user.id, { organizationId: organization.id, eventType: "lead.created", entityType: "lead", entityId: lead.id, context: lead as unknown as Record<string, unknown> }); } catch { /* isolated */ }
+    return NextResponse.json({ lead }, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Não foi possível criar o lead" }, { status: 400 });
   }

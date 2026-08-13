@@ -1,0 +1,4 @@
+import { NextResponse } from "next/server";
+import { getCurrentOrganization, requireUser } from "../../../../lib/supabase/auth";
+import { updateFollowUp } from "../../../../lib/crm/automations";
+export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) { const { supabase } = await requireUser(); const org = await getCurrentOrganization(); if (!supabase || !org) return NextResponse.json({ error: "Acesso negado" }, { status: 403 }); const body = await request.json().catch(() => null) as { status?: "completed" | "cancelled" } | null; if (!body?.status) return NextResponse.json({ error: "Status inválido" }, { status: 400 }); try { return NextResponse.json({ followUp: await updateFollowUp(supabase, org.id, (await context.params).id, body.status) }); } catch { return NextResponse.json({ error: "Não foi possível atualizar follow-up" }, { status: 400 }); } }
