@@ -60,20 +60,20 @@ def run():
 
         page.goto(BASE + "/empresas", wait_until="domcontentloaded"); page.wait_for_timeout(1300)
         page.get_by_text(company["name"], exact=True).first.click(); page.wait_for_timeout(500)
-        page.get_by_role("button", name=re.compile("Negócios", re.I)).last.click(); page.wait_for_timeout(300)
+        page.get_by_role("button", name=re.compile("Neg.*cios", re.I)).last.click(); page.wait_for_timeout(300)
         check("company_drawer_deal", page.get_by_text(related["name"], exact=True).count() > 0, related["id"])
         page.reload(wait_until="domcontentloaded"); page.wait_for_timeout(1200)
         page.get_by_text(company["name"], exact=True).first.click(); page.wait_for_timeout(300)
-        page.get_by_role("button", name=re.compile("NegÃ³cios", re.I)).last.click(); page.wait_for_timeout(300)
+        page.get_by_role("button", name=re.compile("Neg.*cios", re.I)).last.click(); page.wait_for_timeout(300)
         check("company_refresh", page.get_by_text(related["name"], exact=True).count() > 0, related["id"])
 
         page.goto(BASE + "/contatos", wait_until="domcontentloaded"); page.wait_for_timeout(1300)
         page.get_by_text(contact["fullName"], exact=True).first.click(); page.wait_for_timeout(500)
-        page.get_by_role("button", name=re.compile("Negócios", re.I)).last.click(); page.wait_for_timeout(300)
+        page.get_by_role("button", name=re.compile("Neg.*cios", re.I)).last.click(); page.wait_for_timeout(300)
         check("contact_drawer_deal", page.get_by_text(related["name"], exact=True).count() > 0, related["id"])
         page.reload(wait_until="domcontentloaded"); page.wait_for_timeout(1200)
         page.get_by_text(contact["fullName"], exact=True).first.click(); page.wait_for_timeout(300)
-        page.get_by_role("button", name=re.compile("Negócios", re.I)).last.click(); page.wait_for_timeout(300)
+        page.get_by_role("button", name=re.compile("Neg.*cios", re.I)).last.click(); page.wait_for_timeout(300)
         check("contact_refresh", page.get_by_text(related["name"], exact=True).count() > 0)
 
         open_deals = [d for d in deals if d.get("status") == "open" and not d.get("archivedAt") and d.get("pipelineId") == related.get("pipelineId")][:2]
