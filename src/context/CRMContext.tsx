@@ -437,19 +437,21 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
     commercialPersistence ? [] : MOCK_LEADS.map(({ tasks: _tasks, activities: _activities, ...lead }) => lead)
   );
   const [currentOrganizationRole, setCurrentOrganizationRole] = useState<string | null>(null);
-  const [tasks, setTasks] = useState<TaskItem[]>(MOCK_TASKS_SEED);
-  const [activities, setActivities] = useState<ActivityItem[]>(MOCK_ACTIVITIES_SEED);
+  const [tasks, setTasks] = useState<TaskItem[]>(commercialPersistence ? [] : MOCK_TASKS_SEED);
+  const [activities, setActivities] = useState<ActivityItem[]>(commercialPersistence ? [] : MOCK_ACTIVITIES_SEED);
 
   useEffect(() => {
     if (!commercialPersistence) return;
     let cancelled = false;
     const loadCommercialData = async () => {
-      const [companiesResponse, contactsResponse, pipelinesResponse, dealsResponse, leadsResponse] = await Promise.all([
+      const [companiesResponse, contactsResponse, pipelinesResponse, dealsResponse, leadsResponse, tasksResponse, activitiesResponse] = await Promise.all([
         fetch("/api/commercial/companies", { cache: "no-store" }),
         fetch("/api/commercial/contacts", { cache: "no-store" }),
         fetch("/api/commercial/pipelines", { cache: "no-store" }),
         fetch("/api/commercial/deals", { cache: "no-store" }),
         fetch("/api/commercial/leads", { cache: "no-store" }),
+        fetch("/api/commercial/tasks", { cache: "no-store" }),
+        fetch("/api/commercial/activities", { cache: "no-store" }),
       ]);
       const companiesJson = companiesResponse.headers.get("content-type")?.includes("application/json") ?? false;
       const contactsJson = contactsResponse.headers.get("content-type")?.includes("application/json") ?? false;
@@ -461,12 +463,16 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         if (!cancelled) { setLeads([]); setCurrentOrganizationRole(denied.role ?? "suspended"); }
         return;
       }
-      if (!companiesResponse.ok || !contactsResponse.ok || !pipelinesResponse.ok || !dealsResponse.ok || !leadsResponse.ok || !companiesJson || !contactsJson || !pipelinesJson || !dealsJson || !leadsJson || cancelled) return;
+      const tasksJson = tasksResponse.headers.get("content-type")?.includes("application/json") ?? false;
+      const activitiesJson = activitiesResponse.headers.get("content-type")?.includes("application/json") ?? false;
+      if (!companiesResponse.ok || !contactsResponse.ok || !pipelinesResponse.ok || !dealsResponse.ok || !leadsResponse.ok || !tasksResponse.ok || !activitiesResponse.ok || !companiesJson || !contactsJson || !pipelinesJson || !dealsJson || !leadsJson || !tasksJson || !activitiesJson || cancelled) return;
       const companiesPayload = await companiesResponse.json() as { companies?: CompanyItem[] };
       const contactsPayload = await contactsResponse.json() as { contacts?: ContactItem[] };
       const pipelinesPayload = await pipelinesResponse.json() as { pipelines?: PipelineEntity[] };
       const dealsPayload = await dealsResponse.json() as { deals?: DealItem[] };
       const leadsPayload = await leadsResponse.json() as { leads?: LeadItem[]; role?: string };
+      const tasksPayload = await tasksResponse.json() as { tasks?: TaskItem[] };
+      const activitiesPayload = await activitiesResponse.json() as { activities?: ActivityItem[] };
       if (!cancelled) {
         setCompanies(companiesPayload.companies ?? []);
         setContacts(contactsPayload.contacts ?? []);
@@ -474,6 +480,8 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         setDeals(dealsPayload.deals ?? []);
         setLeads(leadsPayload.leads ?? []);
         setCurrentOrganizationRole(leadsPayload.role ?? null);
+        setTasks(tasksPayload.tasks ?? []);
+        setActivities(activitiesPayload.activities ?? []);
       }
     };
     void loadCommercialData();
@@ -1063,6 +1071,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     setTasks((prev) => [newTask, ...prev]);
+    if (commercialPersistence) void fetch("/api/commercial/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(taskData) }).then(async (response) => { if (!response.ok) throw new Error(); const payload = await response.json() as { task?: TaskItem }; if (payload.task) setTasks((prev) => [payload.task as TaskItem, ...prev.filter((item) => item.id !== newTask.id)]); }).catch(() => setTasks((prev) => prev.filter((item) => item.id !== newTask.id)));
     return newTask;
   };
 
@@ -1072,6 +1081,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
       )
     );
+    if (commercialPersistence) void fetch(`/api/commercial/tasks/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updates) }).catch(() => undefined);
   };
 
   const completeTask = (id: string) => {
@@ -1083,6 +1093,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
           : t
       )
     );
+    if (commercialPersistence) void fetch(`/api/commercial/tasks/${id}/complete`, { method: "POST" }).catch(() => undefined);
   };
 
   const reopenTask = (id: string) => {
@@ -1094,6 +1105,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
           : t
       )
     );
+    if (commercialPersistence) void fetch(`/api/commercial/tasks/${id}/reopen`, { method: "POST" }).catch(() => undefined);
   };
 
   const archiveTask = (id: string) => {
@@ -1101,6 +1113,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
     setTasks((prev) =>
       prev.map((t) => (t.id === id ? { ...t, archivedAt: timestamp } : t))
     );
+    if (commercialPersistence) void fetch(`/api/commercial/tasks/${id}`, { method: "DELETE" }).catch(() => undefined);
   };
 
   const bulkUpdateTasksOwner = (ids: string[], ownerId: string, ownerName: string) => {
@@ -1110,6 +1123,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         ids.includes(t.id) ? { ...t, ownerId, ownerName, updatedAt: timestamp } : t
       )
     );
+    if (commercialPersistence) void fetch("/api/commercial/tasks/bulk", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids, updates: { ownerId } }) }).catch(() => undefined);
   };
 
   const bulkUpdateTasksPriority = (ids: string[], priority: "low" | "medium" | "high") => {
@@ -1119,6 +1133,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         ids.includes(t.id) ? { ...t, priority, updatedAt: timestamp } : t
       )
     );
+    if (commercialPersistence) void fetch("/api/commercial/tasks/bulk", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids, updates: { priority } }) }).catch(() => undefined);
   };
 
   const bulkUpdateTasksDueDate = (ids: string[], dueDate: string) => {
@@ -1128,6 +1143,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         ids.includes(t.id) ? { ...t, dueDate, updatedAt: timestamp } : t
       )
     );
+    if (commercialPersistence) void fetch("/api/commercial/tasks/bulk", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids, updates: { dueDate } }) }).catch(() => undefined);
   };
 
   const bulkCompleteTasks = (ids: string[]) => {
@@ -1139,6 +1155,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
           : t
       )
     );
+    if (commercialPersistence) void fetch("/api/commercial/tasks/bulk", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids, updates: { status: "completed", completedAt: new Date().toISOString() } }) }).catch(() => undefined);
   };
 
   const bulkReopenTasks = (ids: string[]) => {
@@ -1150,6 +1167,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
           : t
       )
     );
+    if (commercialPersistence) void fetch("/api/commercial/tasks/bulk", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids, updates: { status: "pending", completedAt: null } }) }).catch(() => undefined);
   };
 
   const bulkArchiveTasks = (ids: string[]) => {
@@ -1157,6 +1175,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
     setTasks((prev) =>
       prev.map((t) => (ids.includes(t.id) ? { ...t, archivedAt: timestamp } : t))
     );
+    if (commercialPersistence) void fetch("/api/commercial/tasks/bulk", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids, updates: { archivedAt: new Date().toISOString() } }) }).catch(() => undefined);
   };
 
   // --- ACTIVITIES HANDLERS ---
@@ -1185,6 +1204,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     setActivities((prev) => [newActivity, ...prev]);
+    if (commercialPersistence) void fetch("/api/commercial/activities", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(activityData) }).then(async (response) => { if (!response.ok) throw new Error(); const payload = await response.json() as { activity?: ActivityItem }; if (payload.activity) setActivities((prev) => [payload.activity as ActivityItem, ...prev.filter((item) => item.id !== newActivity.id)]); }).catch(() => setActivities((prev) => prev.filter((item) => item.id !== newActivity.id)));
 
     const activityLabel = `${newActivity.title} (agora mesmo)`;
     if (newActivity.entityType === "contact" && newActivity.entityId) {
@@ -1223,6 +1243,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         a.id === id ? { ...a, ...updates, updatedAt: new Date().toISOString() } : a
       )
     );
+    if (commercialPersistence) void fetch(`/api/commercial/activities/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updates) }).catch(() => undefined);
   };
 
   const completeActivity = (id: string) => {
@@ -1232,6 +1253,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         a.id === id ? { ...a, status: "completed", updatedAt: timestamp } : a
       )
     );
+    if (commercialPersistence) void fetch(`/api/commercial/activities/${id}/complete`, { method: "POST" }).catch(() => undefined);
   };
 
   const cancelActivity = (id: string) => {
@@ -1241,6 +1263,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         a.id === id ? { ...a, status: "cancelled", updatedAt: timestamp } : a
       )
     );
+    if (commercialPersistence) void fetch(`/api/commercial/activities/${id}/cancel`, { method: "POST" }).catch(() => undefined);
   };
 
   const archiveActivity = (id: string) => {
@@ -1248,6 +1271,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
     setActivities((prev) =>
       prev.map((a) => (a.id === id ? { ...a, archivedAt: timestamp } : a))
     );
+    if (commercialPersistence) void fetch(`/api/commercial/activities/${id}`, { method: "DELETE" }).catch(() => undefined);
   };
 
   // --- GETTERS ---

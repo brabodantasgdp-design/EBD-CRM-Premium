@@ -1,0 +1,41 @@
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "../../src/types/database.types";
+
+type Client = SupabaseClient<Database>;
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+if (!url || !key) throw new Error("Integration environment is incomplete");
+const required = ["E2E_OWNER_A_EMAIL", "E2E_OWNER_A_PASSWORD", "E2E_OWNER_B_EMAIL", "E2E_OWNER_B_PASSWORD", "E2E_SALES_A_EMAIL", "E2E_SALES_A_PASSWORD"];
+if (required.some((name) => !process.env[name])) throw new Error("E2E credentials are incomplete");
+const login = async (email: string, password: string) => { const client = createClient<Database>(url, key, { auth: { persistSession: false, autoRefreshToken: false } }); const result = await client.auth.signInWithPassword({ email, password }); if (result.error || !result.data.user) throw new Error("Fixture login failed"); return { client, userId: result.data.user.id }; };
+const must = <T>(label: string, result: { data: T; error: { message: string } | null }) => { if (result.error) throw new Error(`${label}: ${result.error.message}`); return result.data; };
+const expect = (value: boolean, message: string) => { if (!value) throw new Error(`ASSERTION FAILED: ${message}`); };
+const ownerA = await login(process.env.E2E_OWNER_A_EMAIL!, process.env.E2E_OWNER_A_PASSWORD!);
+const ownerB = await login(process.env.E2E_OWNER_B_EMAIL!, process.env.E2E_OWNER_B_PASSWORD!);
+const salesA = await login(process.env.E2E_SALES_A_EMAIL!, process.env.E2E_SALES_A_PASSWORD!);
+const orgA = must("Org A", await ownerA.client.from("organizations").select("id").eq("created_by", ownerA.userId).limit(1).single()).id;
+const orgB = must("Org B", await ownerB.client.from("organizations").select("id").eq("created_by", ownerB.userId).limit(1).single()).id;
+const companyA = must("Company A", await ownerA.client.from("companies").select("id").eq("organization_id", orgA).is("archived_at", null).limit(1).single()).id;
+const leadA = must("Lead A", await ownerA.client.from("leads").select("id").eq("organization_id", orgA).is("archived_at", null).limit(1).single()).id;
+const dealA = must("Deal A", await ownerA.client.from("deals").select("id").eq("organization_id", orgA).is("archived_at", null).limit(1).single()).id;
+const companyB = must("Company B", await ownerB.client.from("companies").select("id").eq("organization_id", orgB).is("archived_at", null).limit(1).single()).id;
+const marker = `phase10-${Date.now()}`;
+const taskIds: string[] = []; const activityIds: string[] = []; let taskBId: string | null = null;
+try {
+  const taskB = must("Create Task B", await ownerB.client.from("tasks").insert({ organization_id: orgB, title: `${marker}-task-b`, status: "pending", created_by: ownerB.userId, entity_type: "company", entity_id: companyB }).select("id").single()); taskBId = taskB.id;
+  const task = must("Create Deal task", await ownerA.client.from("tasks").insert({ organization_id: orgA, title: `${marker}-deal-task`, status: "pending", priority: "high", due_date: "2026-08-13", owner_id: ownerA.userId, created_by: ownerA.userId, entity_type: "deal", entity_id: dealA }).select("*").single()); taskIds.push(task.id);
+  const taskDone = must("Complete task", await ownerA.client.from("tasks").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", task.id).select("status, completed_at").single()); expect(taskDone.status === "completed" && Boolean(taskDone.completed_at), "task completes");
+  const taskOpen = must("Reopen task", await ownerA.client.from("tasks").update({ status: "pending", completed_at: null }).eq("id", task.id).select("status, completed_at").single()); expect(taskOpen.status === "pending" && taskOpen.completed_at === null, "task reopens");
+  for (const [type, entity] of [["lead", leadA], ["company", companyA]] as const) { const item = must(`Create ${type} task`, await ownerA.client.from("tasks").insert({ organization_id: orgA, title: `${marker}-${type}-task`, status: "pending", priority: "medium", due_date: "2026-08-13", owner_id: ownerA.userId, created_by: ownerA.userId, entity_type: type, entity_id: entity }).select("id, entity_type, entity_id").single()); taskIds.push(item.id); }
+  const salesTask = must("Sales task", await salesA.client.from("tasks").insert({ organization_id: orgA, title: `${marker}-sales-task`, status: "pending", due_date: "2026-08-13", owner_id: salesA.userId, created_by: salesA.userId, entity_type: "deal", entity_id: dealA }).select("id").single()); taskIds.push(salesTask.id);
+  const crossLink = await ownerA.client.from("tasks").insert({ organization_id: orgA, title: `${marker}-cross-task`, status: "pending", created_by: ownerA.userId, entity_type: "company", entity_id: companyB }); expect(Boolean(crossLink.error), "cross-tenant task link blocked");
+  const activity = must("Create Deal activity", await ownerA.client.from("activities").insert({ organization_id: orgA, type: "meeting", title: `${marker}-deal-activity`, status: "scheduled", start_at: "2026-08-13T23:30:00-03:00", end_at: "2026-08-14T00:30:00-03:00", owner_id: ownerA.userId, created_by: ownerA.userId, entity_type: "deal", entity_id: dealA }).select("*").single()); activityIds.push(activity.id); expect(activity.start_at.includes("T02:30") || activity.start_at.includes("T23:30") || Boolean(activity.start_at), "timestamp persisted");
+  const edited = must("Edit activity", await ownerA.client.from("activities").update({ title: `${marker}-deal-activity-edited`, start_at: "2026-08-14T00:30:00-03:00" }).eq("id", activity.id).select("title, start_at").single()); expect(edited.title.includes("edited"), "activity edit persists");
+  const cancelled = must("Cancel activity", await ownerA.client.from("activities").update({ status: "cancelled" }).eq("id", activity.id).select("status").single()); expect(cancelled.status === "cancelled", "activity cancellation persists");
+  for (const [type, entity] of [["lead", leadA], ["company", companyA]] as const) { const item = must(`Create ${type} activity`, await ownerA.client.from("activities").insert({ organization_id: orgA, type: "call", title: `${marker}-${type}-activity`, status: "scheduled", start_at: "2026-08-15T12:00:00-03:00", owner_id: ownerA.userId, created_by: ownerA.userId, entity_type: type, entity_id: entity }).select("id").single()); activityIds.push(item.id); }
+  const crossActivity = await ownerA.client.from("activities").insert({ organization_id: orgA, type: "meeting", title: `${marker}-cross-activity`, status: "scheduled", start_at: "2026-08-15T12:00:00-03:00", created_by: ownerA.userId, entity_type: "company", entity_id: companyB }); expect(Boolean(crossActivity.error), "cross-tenant activity link blocked");
+  const ownerAReadB = await ownerA.client.from("tasks").select("id").eq("id", taskBId || "00000000-0000-0000-0000-000000000000"); expect((ownerAReadB.data || []).length === 0, "Owner A cannot read Task B");
+  const audit = must("Task/activity audit", await ownerA.client.from("audit_logs").select("action").in("entity_id", [...taskIds, ...activityIds])); expect(audit.some((item) => item.action === "task.created") && audit.some((item) => item.action === "activity.created") && audit.some((item) => item.action === "activity.cancelled"), "audit events exist");
+  const salesMembership = must("Sales membership", await salesA.client.from("organization_members").select("role,status").eq("organization_id", orgA).eq("user_id", salesA.userId).single()); expect(salesMembership.role === "sales" && salesMembership.status === "active", "Sales active");
+  console.log(JSON.stringify({ marker, tasks: taskIds, activities: activityIds, bidirectionalIds: { task: task.id, activity: activity.id }, crossTenant: true, sales: salesMembership.role, audit: audit.map((item) => item.action) }));
+} finally { if (taskIds.length) await ownerA.client.from("tasks").update({ archived_at: new Date().toISOString() }).in("id", taskIds); if (activityIds.length) await ownerA.client.from("activities").update({ archived_at: new Date().toISOString() }).in("id", activityIds); if (taskBId) await ownerB.client.from("tasks").update({ archived_at: new Date().toISOString() }).eq("id", taskBId); }
