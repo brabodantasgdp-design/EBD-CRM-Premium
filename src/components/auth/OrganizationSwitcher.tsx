@@ -16,7 +16,12 @@ export function OrganizationSwitcher() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    fetch("/api/organizations").then(async (response) => ({ response, payload: await response.json() })).then(({ response, payload }) => {
+    fetch("/api/organizations").then(async (response) => {
+      const contentType = response.headers.get("content-type") ?? "";
+      const payload = contentType.includes("application/json") ? await response.json() : null;
+      return { response, payload };
+    }).then(({ response, payload }) => {
+      if (!payload) return;
       if (!payload.configured) return;
       setConfigured(true);
       if (response.ok) {

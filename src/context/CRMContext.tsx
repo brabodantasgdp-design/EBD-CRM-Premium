@@ -445,7 +445,9 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         fetch("/api/commercial/companies", { cache: "no-store" }),
         fetch("/api/commercial/contacts", { cache: "no-store" }),
       ]);
-      if (!companiesResponse.ok || !contactsResponse.ok || cancelled) return;
+      const companiesJson = companiesResponse.headers.get("content-type")?.includes("application/json") ?? false;
+      const contactsJson = contactsResponse.headers.get("content-type")?.includes("application/json") ?? false;
+      if (!companiesResponse.ok || !contactsResponse.ok || !companiesJson || !contactsJson || cancelled) return;
       const companiesPayload = await companiesResponse.json() as { companies?: CompanyItem[] };
       const contactsPayload = await contactsResponse.json() as { contacts?: ContactItem[] };
       if (!cancelled) {
