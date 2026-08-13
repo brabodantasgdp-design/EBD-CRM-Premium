@@ -13,6 +13,7 @@ interface DealFormModalProps {
   availableCompanies: CompanyItem[];
   availableContacts: ContactItem[];
   availableOwners: { id: string; name: string }[];
+  availablePipelines?: PipelineConfig[];
   onSave: (dealData: Partial<DealItem>) => void;
 }
 
@@ -25,6 +26,7 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
   availableCompanies,
   availableContacts,
   availableOwners,
+  availablePipelines = MOCK_PIPELINES,
   onSave,
 }) => {
   const [name, setName] = useState("");
@@ -42,7 +44,7 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
 
   // Active pipeline object
   const activePipeline =
-    MOCK_PIPELINES.find((p) => p.id === pipelineId) || MOCK_PIPELINES[0];
+    availablePipelines.find((p) => p.id === pipelineId) || availablePipelines[0] || MOCK_PIPELINES[0];
 
   // Active stages for current pipeline
   const activeStages = activePipeline.stages;
@@ -62,7 +64,7 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
       setNotesInput("");
     } else {
       setName("");
-      const targetPipe = initialPipeline || MOCK_PIPELINES[0];
+      const targetPipe = initialPipeline || availablePipelines[0] || MOCK_PIPELINES[0];
       setPipelineId(targetPipe.id);
       const targetStage = initialStage || targetPipe.stages[0];
       setStageId(targetStage.id);
@@ -84,7 +86,7 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
   // When pipeline changes, reset stageId to first stage of new pipeline if current stage is invalid
   const handlePipelineChange = (newPipeId: string) => {
     setPipelineId(newPipeId);
-    const selectedPipe = MOCK_PIPELINES.find((p) => p.id === newPipeId);
+    const selectedPipe = availablePipelines.find((p) => p.id === newPipeId);
     if (selectedPipe && selectedPipe.stages.length > 0) {
       setStageId(selectedPipe.stages[0].id);
     }
@@ -113,7 +115,7 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
 
     setIsSubmitting(true);
 
-    const selectedPipe = MOCK_PIPELINES.find((p) => p.id === pipelineId);
+    const selectedPipe = availablePipelines.find((p) => p.id === pipelineId);
     const selectedStage = selectedPipe?.stages.find((s) => s.id === stageId);
     const selectedCompany = availableCompanies.find((c) => c.id === companyId);
     const selectedContact = availableContacts.find((c) => c.id === contactId);
