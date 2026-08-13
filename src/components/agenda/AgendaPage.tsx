@@ -28,6 +28,7 @@ import { ActivityItem, TaskItem } from "../../types/crm";
 import { useCRM } from "../../context/CRMContext";
 import { ActivityFormModal } from "./ActivityFormModal";
 import { TaskFormModal, MOCK_TASK_OWNERS } from "../tasks/TaskFormModal";
+import { getLocalDateString } from "../../utils/formatters";
 
 interface AgendaPageProps {
   onShowToast: (msg: string) => void;
@@ -54,7 +55,10 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({
   const [teamMode, setTeamMode] = useState<"mine" | "team">("team");
 
   // Selected reference date
-  const [currentDate, setCurrentDate] = useState<Date>(new Date(2026, 7, 11)); // 11 Aug 2026
+  const [currentDate, setCurrentDate] = useState<Date>(() => {
+    const [year, month, day] = getLocalDateString().split("-").map(Number);
+    return new Date(year, month - 1, day);
+  });
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -102,7 +106,8 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({
   };
 
   const handleToday = () => {
-    setCurrentDate(new Date(2026, 7, 11));
+    const [year, month, day] = getLocalDateString().split("-").map(Number);
+    setCurrentDate(new Date(year, month - 1, day));
   };
 
   // Combine Activities & Tasks
@@ -402,7 +407,7 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({
               </div>
               {weekDays.map((d, idx) => {
                 const iso = formatDateISO(d);
-                const isToday = iso === formatDateISO(new Date(2026, 7, 11));
+                const isToday = iso === getLocalDateString();
                 const dayName = d.toLocaleDateString("pt-BR", { weekday: "short" });
 
                 return (
@@ -637,7 +642,7 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({
           <div className="grid grid-cols-7 divide-x divide-y divide-slate-200 dark:divide-slate-800 min-h-[500px]">
             {monthDays.map((cell, idx) => {
               const cellIso = formatDateISO(cell.date);
-              const isToday = cellIso === formatDateISO(new Date(2026, 7, 11));
+              const isToday = cellIso === getLocalDateString();
 
               const dayActs = combinedAgendaItems.activities.filter((a) =>
                 a.startAt.startsWith(cellIso)
