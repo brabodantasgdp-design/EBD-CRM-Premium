@@ -12,6 +12,7 @@ import {
   ContactLifecycleStatus,
   CompanyStatus,
   CRMContextType,
+  PipelineEntity,
 } from "../types/crm";
 import { MOCK_CONTACTS } from "../data/mockContactsData";
 import { MOCK_COMPANIES_DATA } from "../data/mockCompaniesData";
@@ -429,8 +430,9 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
     commercialPersistence ? [] : MOCK_COMPANIES_DATA.map(({ tasks: _tasks, activities: _activities, ...company }) => company)
   );
   const [deals, setDeals] = useState<DealItem[]>(
-    INITIAL_DEALS.map(({ tasks: _tasks, activities: _activities, ...deal }) => deal)
+    commercialPersistence ? [] : INITIAL_DEALS.map(({ tasks: _tasks, activities: _activities, ...deal }) => deal)
   );
+  const [pipelines, setPipelines] = useState<PipelineEntity[]>([]);
   const [leads, setLeads] = useState<LeadItem[]>(
     MOCK_LEADS.map(({ tasks: _tasks, activities: _activities, ...lead }) => lead)
   );
@@ -441,18 +443,26 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!commercialPersistence) return;
     let cancelled = false;
     const loadCommercialData = async () => {
-      const [companiesResponse, contactsResponse] = await Promise.all([
+      const [companiesResponse, contactsResponse, pipelinesResponse, dealsResponse] = await Promise.all([
         fetch("/api/commercial/companies", { cache: "no-store" }),
         fetch("/api/commercial/contacts", { cache: "no-store" }),
+        fetch("/api/commercial/pipelines", { cache: "no-store" }),
+        fetch("/api/commercial/deals", { cache: "no-store" }),
       ]);
       const companiesJson = companiesResponse.headers.get("content-type")?.includes("application/json") ?? false;
       const contactsJson = contactsResponse.headers.get("content-type")?.includes("application/json") ?? false;
-      if (!companiesResponse.ok || !contactsResponse.ok || !companiesJson || !contactsJson || cancelled) return;
+      const pipelinesJson = pipelinesResponse.headers.get("content-type")?.includes("application/json") ?? false;
+      const dealsJson = dealsResponse.headers.get("content-type")?.includes("application/json") ?? false;
+      if (!companiesResponse.ok || !contactsResponse.ok || !pipelinesResponse.ok || !dealsResponse.ok || !companiesJson || !contactsJson || !pipelinesJson || !dealsJson || cancelled) return;
       const companiesPayload = await companiesResponse.json() as { companies?: CompanyItem[] };
       const contactsPayload = await contactsResponse.json() as { contacts?: ContactItem[] };
+      const pipelinesPayload = await pipelinesResponse.json() as { pipelines?: PipelineEntity[] };
+      const dealsPayload = await dealsResponse.json() as { deals?: DealItem[] };
       if (!cancelled) {
         setCompanies(companiesPayload.companies ?? []);
         setContacts(contactsPayload.contacts ?? []);
+        setPipelines(pipelinesPayload.pipelines ?? []);
+        setDeals(dealsPayload.deals ?? []);
       }
     };
     void loadCommercialData();
@@ -800,6 +810,15 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // --- DEALS HANDLERS ---
+  const refreshCommercialDeals = () => {
+    if (!commercialPersistence) return;
+    void fetch("/api/commercial/deals", { cache: "no-store" }).then(async (response) => {
+      if (!response.ok || !(response.headers.get("content-type") ?? "").includes("application/json")) return;
+      const payload = await response.json() as { deals?: DealItem[] };
+      setDeals(payload.deals ?? []);
+    }).catch(() => undefined);
+  };
+
   const addDeal = (dealData: Partial<DealItem>): DealItem => {
     const { activities: _legacyActivities, tasks: _legacyTasks, ...cleanDealData } = dealData;
     const rawVal =
@@ -811,15 +830,15 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const newDeal: DealItem = {
       id: dealData.id || `deal-${Date.now()}`,
-      organizationId: "org-nexus-01",
+      organizationId: dealData.organizationId || "org-nexus-01",
       name: dealData.name || "Novo Negócio",
       companyId: dealData.companyId,
       companyName: dealData.companyName,
       contactId: dealData.contactId,
       contactName: dealData.contactName,
-      pipelineId: dealData.pipelineId || "pipe-b2b",
+      pipelineId: dealData.pipelineId || pipelines[0]?.id || "pipe-b2b",
       pipelineName: dealData.pipelineName || "Vendas B2B Complexas",
-      stageId: dealData.stageId || "stg-qual",
+      stageId: dealData.stageId || pipelines[0]?.stages[0]?.id || "stg-qual",
       stageName: dealData.stageName || "Qualificação",
       probability: dealData.probability ?? 20,
       value: rawVal,
@@ -843,6 +862,12 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     setDeals((prev) => [newDeal, ...prev]);
+    if (commercialPersistence) {
+      void fetch("/api/commercial/deals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newDeal) })
+        .then((response) => { if (!response.ok) throw new Error("deal persistence failed"); refreshCommercialDeals(); })
+        .catch(() => setDeals((prev) => prev.filter((deal) => deal.id !== newDeal.id)));
+      return newDeal;
+    }
     setActivities((prev) => [
       {
         id: `act-init-${Date.now()}`,
@@ -929,6 +954,42 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         };
       })
     );
+    if (commercialPersistence) {
+      const deal = deals.find((item) => item.id === id);
+      const stageChanged = Boolean(updates.stageId && updates.stageId !== deal?.stageId);
+      const action = updates.status === "won" ? "won" : updates.status === "lost" ? "lost" : stageChanged ? "move" : "patch";
+      const request = action === "move" ? fetch(`/api/commercial/deals/${id}/move`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pipelineId: updates.pipelineId || deal?.pipelineId, stageId: updates.stageId, note: updates.status === "open" ? "Negócio reaberto" : undefined }) })
+        : action === "won" ? fetch(`/api/commercial/deals/${id}/won`, { method: "POST" })
+        : action === "lost" ? fetch(`/api/commercial/deals/${id}/lost`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason: updates.lossReason, note: updates.lossNote }) })
+        : fetch(`/api/commercial/deals/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updates) });
+      void request.then((response) => { if (!response.ok) throw new Error("deal persistence failed"); refreshCommercialDeals(); }).catch(() => undefined);
+    }
+  };
+
+  const moveDealStage = (id: string, pipelineId: string, stageId: string, note?: string) => {
+    const pipeline = pipelines.find((item) => item.id === pipelineId);
+    const stage = pipeline?.stages.find((item) => item.id === stageId);
+    if (!stage || !pipeline) return;
+    const updates: Partial<DealItem> = { pipelineId, pipelineName: pipeline.name, stageId, stageName: stage.name, probability: stage.probability, status: stage.stageType === "won" ? "won" : stage.stageType === "lost" ? "lost" : "open" };
+    if (commercialPersistence) {
+      setDeals((prev) => prev.map((deal) => deal.id === id ? { ...deal, ...updates } : deal));
+      void fetch(`/api/commercial/deals/${id}/move`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pipelineId, stageId, note }) }).then(() => refreshCommercialDeals()).catch(() => undefined);
+    } else updateDeal(id, updates);
+  };
+
+  const markDealWon = (id: string) => {
+    if (commercialPersistence) void fetch(`/api/commercial/deals/${id}/won`, { method: "POST" }).then(() => refreshCommercialDeals()).catch(() => undefined);
+    else updateDeal(id, { status: "won", probability: 100 });
+  };
+
+  const markDealLost = (id: string, reason: string, note?: string) => {
+    if (commercialPersistence) void fetch(`/api/commercial/deals/${id}/lost`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason, note }) }).then(() => refreshCommercialDeals()).catch(() => undefined);
+    else updateDeal(id, { status: "lost", probability: 0, lossReason: reason, lossNote: note });
+  };
+
+  const reopenDeal = (id: string, pipelineId: string, stageId: string) => {
+    if (commercialPersistence) void fetch(`/api/commercial/deals/${id}/reopen`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pipelineId, stageId }) }).then(() => refreshCommercialDeals()).catch(() => undefined);
+    else updateDeal(id, { status: "open", pipelineId, stageId, wonAt: undefined, lostAt: undefined, lossReason: undefined, lossNote: undefined });
   };
 
   const archiveDeal = (id: string) => {
@@ -938,6 +999,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         d.id === id ? { ...d, archivedAt: timestamp, isArchived: true, updatedAt: "agora mesmo" } : d
       )
     );
+    if (commercialPersistence) void fetch(`/api/commercial/deals/${id}/archive`, { method: "POST" }).then(() => refreshCommercialDeals()).catch(() => undefined);
   };
 
   const bulkArchiveDeals = (ids: string[]) => {
@@ -949,6 +1011,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
           : d
       )
     );
+    if (commercialPersistence) ids.forEach((id) => void fetch(`/api/commercial/deals/${id}/archive`, { method: "POST" }).then(() => undefined).catch(() => undefined));
   };
 
   // --- TASKS HANDLERS ---
@@ -1223,6 +1286,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         contacts,
         companies,
         deals,
+        pipelines,
         tasks,
         activities,
         addLead,
@@ -1255,6 +1319,10 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         updateDeal,
         archiveDeal,
         bulkArchiveDeals,
+        moveDealStage,
+        markDealWon,
+        markDealLost,
+        reopenDeal,
         setDeals,
         addTask,
         updateTask,

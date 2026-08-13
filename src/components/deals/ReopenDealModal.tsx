@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { RotateCcw, X, GitBranch } from "lucide-react";
 import { DealItem } from "../../types/crm";
-import { MOCK_PIPELINES } from "../../data/mockPipelinesData";
+import { MOCK_PIPELINES, PipelineConfig } from "../../data/mockPipelinesData";
 
 interface ReopenDealModalProps {
   isOpen: boolean;
   onClose: () => void;
   deal: DealItem | null;
+  availablePipelines?: PipelineConfig[];
   onConfirm: (
     pipelineId: string,
     stageId: string,
@@ -19,18 +20,31 @@ export const ReopenDealModal: React.FC<ReopenDealModalProps> = ({
   isOpen,
   onClose,
   deal,
+  availablePipelines = MOCK_PIPELINES,
   onConfirm,
 }) => {
-  const [pipelineId, setPipelineId] = useState("pipe-b2b");
-  const [stageId, setStageId] = useState("stg-qual");
+  const [pipelineId, setPipelineId] = useState(availablePipelines[0]?.id || "pipe-b2b");
+  const [stageId, setStageId] = useState(availablePipelines[0]?.stages[0]?.id || "stg-qual");
+
+  useEffect(() => {
+    if (!isOpen || !availablePipelines.length) return;
+    const pipeline = availablePipelines.find((item) => item.id === deal?.pipelineId) || availablePipelines[0];
+    const stage = pipeline.stages.find((item) => item.id === deal?.stageId && item.probability > 0 && item.probability < 100)
+      || pipeline.stages.find((item) => item.probability > 0 && item.probability < 100)
+      || pipeline.stages[0];
+    if (pipeline && stage) {
+      setPipelineId(pipeline.id);
+      setStageId(stage.id);
+    }
+  }, [availablePipelines, deal?.pipelineId, deal?.stageId, isOpen]);
 
   if (!isOpen || !deal) return null;
 
-  const activePipe = MOCK_PIPELINES.find((p) => p.id === pipelineId) || MOCK_PIPELINES[0];
+  const activePipe = availablePipelines.find((p) => p.id === pipelineId) || availablePipelines[0];
 
   const handlePipelineChange = (pId: string) => {
     setPipelineId(pId);
-    const pipe = MOCK_PIPELINES.find((p) => p.id === pId);
+    const pipe = availablePipelines.find((p) => p.id === pId);
     if (pipe && pipe.stages.length > 0) {
       setStageId(pipe.stages[0].id);
     }
@@ -75,7 +89,7 @@ export const ReopenDealModal: React.FC<ReopenDealModalProps> = ({
               onChange={(e) => handlePipelineChange(e.target.value)}
               className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800"
             >
-              {MOCK_PIPELINES.map((p) => (
+              {availablePipelines.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
                 </option>

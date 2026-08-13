@@ -163,6 +163,9 @@ export const DealsTable: React.FC<DealsTableProps> = ({
                 <tr
                   key={deal.id}
                   data-testid={`deal-row-${deal.id}`}
+                  data-deal-id={deal.id}
+                  data-stage-id={deal.stageId}
+                  data-pipeline-id={deal.pipelineId}
                   onClick={() => onOpenDetail(deal)}
                   className={`hover:bg-slate-50/80 transition-colors cursor-pointer group ${
                     isSelected ? "bg-indigo-50/40" : ""
@@ -271,6 +274,7 @@ export const DealsTable: React.FC<DealsTableProps> = ({
                 <td className="py-3.5 px-4 text-right relative">
                   <button
                     data-testid={`deal-actions-${deal.id}`}
+                    data-deal-id={deal.id}
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();

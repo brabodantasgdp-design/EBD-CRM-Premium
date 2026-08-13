@@ -47,6 +47,30 @@ export type Database = {
         Update: { id?: string; organization_id?: string; first_name?: string; last_name?: string | null; full_name?: string; email?: string | null; phone?: string | null; mobile_phone?: string | null; job_title?: string | null; company_id?: string | null; owner_id?: string | null; lifecycle_status?: string; source?: string | null; tags?: string[]; custom_fields?: Json | null; created_by?: string; archived_at?: string | null; created_at?: string; updated_at?: string };
         Relationships: [{ foreignKeyName: "contacts_company_id_fkey"; columns: ["company_id"]; isOneToOne: false; referencedRelation: "companies"; referencedColumns: ["id"] }, { foreignKeyName: "contacts_organization_id_fkey"; columns: ["organization_id"]; isOneToOne: false; referencedRelation: "organizations"; referencedColumns: ["id"] }];
       };
+      pipelines: {
+        Row: { id: string; organization_id: string; name: string; description: string | null; status: string; is_default: boolean; position: number; created_by: string | null; created_at: string; updated_at: string; archived_at: string | null };
+        Insert: { id?: string; organization_id: string; name: string; description?: string | null; status?: string; is_default?: boolean; position?: number; created_by?: string | null; created_at?: string; updated_at?: string; archived_at?: string | null };
+        Update: { id?: string; organization_id?: string; name?: string; description?: string | null; status?: string; is_default?: boolean; position?: number; created_by?: string | null; created_at?: string; updated_at?: string; archived_at?: string | null };
+        Relationships: [{ foreignKeyName: "pipelines_organization_id_fkey"; columns: ["organization_id"]; isOneToOne: false; referencedRelation: "organizations"; referencedColumns: ["id"] }];
+      };
+      pipeline_stages: {
+        Row: { id: string; organization_id: string; pipeline_id: string; name: string; position: number; probability: number; color: string | null; stage_type: string; created_at: string; updated_at: string; archived_at: string | null };
+        Insert: { id?: string; organization_id: string; pipeline_id: string; name: string; position: number; probability: number; color?: string | null; stage_type?: string; created_at?: string; updated_at?: string; archived_at?: string | null };
+        Update: { id?: string; organization_id?: string; pipeline_id?: string; name?: string; position?: number; probability?: number; color?: string | null; stage_type?: string; created_at?: string; updated_at?: string; archived_at?: string | null };
+        Relationships: [{ foreignKeyName: "pipeline_stages_pipeline_fk"; columns: ["pipeline_id", "organization_id"]; isOneToOne: false; referencedRelation: "pipelines"; referencedColumns: ["id", "organization_id"] }];
+      };
+      deals: {
+        Row: { id: string; organization_id: string; name: string; company_id: string | null; contact_id: string | null; pipeline_id: string; stage_id: string; owner_id: string | null; value: number; currency: string; probability: number; status: string; expected_close_date: string | null; loss_reason: string | null; loss_note: string | null; won_at: string | null; lost_at: string | null; tags: string[]; custom_fields: Json; created_by: string; created_at: string; updated_at: string; archived_at: string | null };
+        Insert: { id?: string; organization_id: string; name: string; company_id?: string | null; contact_id?: string | null; pipeline_id: string; stage_id: string; owner_id?: string | null; value?: number; currency?: string; probability: number; status?: string; expected_close_date?: string | null; loss_reason?: string | null; loss_note?: string | null; won_at?: string | null; lost_at?: string | null; tags?: string[]; custom_fields?: Json; created_by: string; created_at?: string; updated_at?: string; archived_at?: string | null };
+        Update: { id?: string; organization_id?: string; name?: string; company_id?: string | null; contact_id?: string | null; pipeline_id?: string; stage_id?: string; owner_id?: string | null; value?: number; currency?: string; probability?: number; status?: string; expected_close_date?: string | null; loss_reason?: string | null; loss_note?: string | null; won_at?: string | null; lost_at?: string | null; tags?: string[]; custom_fields?: Json; created_by?: string; created_at?: string; updated_at?: string; archived_at?: string | null };
+        Relationships: [];
+      };
+      deal_stage_history: {
+        Row: { id: string; organization_id: string; deal_id: string; from_pipeline_id: string | null; from_stage_id: string | null; to_pipeline_id: string; to_stage_id: string; changed_by: string | null; note: string | null; created_at: string };
+        Insert: { id?: string; organization_id: string; deal_id: string; from_pipeline_id?: string | null; from_stage_id?: string | null; to_pipeline_id: string; to_stage_id: string; changed_by?: string | null; note?: string | null; created_at?: string };
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -62,6 +86,13 @@ export type Database = {
       accept_organization_invite: { Args: { target_hash: string }; Returns: string };
       can_write_commercial: { Args: { target_organization: string; target_user?: string }; Returns: boolean };
       can_view_profile: { Args: { target_user: string; viewer?: string }; Returns: boolean };
+      can_manage_pipeline: { Args: { target_organization: string; target_user?: string }; Returns: boolean };
+      can_operate_deal: { Args: { target_organization: string; target_user?: string }; Returns: boolean };
+      move_deal_stage: { Args: { target_deal: string; target_pipeline: string; target_stage: string; target_note?: string | null }; Returns: Database["public"]["Tables"]["deals"]["Row"] };
+      mark_deal_won: { Args: { target_deal: string; target_stage?: string | null }; Returns: Database["public"]["Tables"]["deals"]["Row"] };
+      mark_deal_lost: { Args: { target_deal: string; target_reason: string; target_note?: string | null; target_stage?: string | null }; Returns: Database["public"]["Tables"]["deals"]["Row"] };
+      reopen_deal: { Args: { target_deal: string; target_pipeline: string; target_stage: string }; Returns: Database["public"]["Tables"]["deals"]["Row"] };
+      archive_deal: { Args: { target_deal: string }; Returns: Database["public"]["Tables"]["deals"]["Row"] };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

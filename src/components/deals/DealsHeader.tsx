@@ -12,6 +12,7 @@ import { PipelineConfig, MOCK_PIPELINES } from "../../data/mockPipelinesData";
 
 interface DealsHeaderProps {
   activePipeline: PipelineConfig;
+  pipelines?: PipelineConfig[];
   onSelectPipeline: (pipeline: PipelineConfig) => void;
   viewMode: "kanban" | "table";
   onViewModeChange: (mode: "kanban" | "table") => void;
@@ -21,6 +22,7 @@ interface DealsHeaderProps {
 
 export const DealsHeader: React.FC<DealsHeaderProps> = ({
   activePipeline,
+  pipelines = MOCK_PIPELINES,
   onSelectPipeline,
   viewMode,
   onViewModeChange,
@@ -71,7 +73,7 @@ export const DealsHeader: React.FC<DealsHeaderProps> = ({
                   Selecionar Funil
                 </div>
                 <div className="py-1">
-                  {MOCK_PIPELINES.map((p) => (
+                  {pipelines.map((p) => (
                     <button
                       key={p.id}
                       type="button"

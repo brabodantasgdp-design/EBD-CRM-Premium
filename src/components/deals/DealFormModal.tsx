@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, Building2, User, DollarSign, Calendar, Tag, GitBranch, Save, MessageSquare } from "lucide-react";
 import { DealItem, CompanyItem, ContactItem } from "../../types/crm";
 import { PipelineConfig, PipelineStageConfig, MOCK_PIPELINES } from "../../data/mockPipelinesData";
-import { formatDateToBR, formatDateToISO, getLocalDateString } from "../../utils/formatters";
+import { formatDateToISO, getLocalDateString } from "../../utils/formatters";
 
 interface DealFormModalProps {
   isOpen: boolean;
@@ -13,6 +13,7 @@ interface DealFormModalProps {
   availableCompanies: CompanyItem[];
   availableContacts: ContactItem[];
   availableOwners: { id: string; name: string }[];
+  availablePipelines?: PipelineConfig[];
   onSave: (dealData: Partial<DealItem>) => void;
 }
 
@@ -25,6 +26,7 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
   availableCompanies,
   availableContacts,
   availableOwners,
+  availablePipelines = MOCK_PIPELINES,
   onSave,
 }) => {
   const [name, setName] = useState("");
@@ -42,7 +44,7 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
 
   // Active pipeline object
   const activePipeline =
-    MOCK_PIPELINES.find((p) => p.id === pipelineId) || MOCK_PIPELINES[0];
+    availablePipelines.find((p) => p.id === pipelineId) || availablePipelines[0] || MOCK_PIPELINES[0];
 
   // Active stages for current pipeline
   const activeStages = activePipeline.stages;
@@ -62,7 +64,7 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
       setNotesInput("");
     } else {
       setName("");
-      const targetPipe = initialPipeline || MOCK_PIPELINES[0];
+      const targetPipe = initialPipeline || availablePipelines[0] || MOCK_PIPELINES[0];
       setPipelineId(targetPipe.id);
       const targetStage = initialStage || targetPipe.stages[0];
       setStageId(targetStage.id);
@@ -84,7 +86,7 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
   // When pipeline changes, reset stageId to first stage of new pipeline if current stage is invalid
   const handlePipelineChange = (newPipeId: string) => {
     setPipelineId(newPipeId);
-    const selectedPipe = MOCK_PIPELINES.find((p) => p.id === newPipeId);
+    const selectedPipe = availablePipelines.find((p) => p.id === newPipeId);
     if (selectedPipe && selectedPipe.stages.length > 0) {
       setStageId(selectedPipe.stages[0].id);
     }
@@ -113,7 +115,7 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
 
     setIsSubmitting(true);
 
-    const selectedPipe = MOCK_PIPELINES.find((p) => p.id === pipelineId);
+    const selectedPipe = availablePipelines.find((p) => p.id === pipelineId);
     const selectedStage = selectedPipe?.stages.find((s) => s.id === stageId);
     const selectedCompany = availableCompanies.find((c) => c.id === companyId);
     const selectedContact = availableContacts.find((c) => c.id === contactId);
@@ -124,9 +126,6 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean);
-
-    // Format expectedCloseDate to BR string (DD/MM/YYYY) for presentation
-    const formattedCloseDate = formatDateToBR(expectedCloseDate) || "30/09/2026";
 
     // Preserve existing notes and append new note if provided
     let existingNotes = dealToEdit?.notes ? [...dealToEdit.notes] : [];
@@ -154,7 +153,8 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
       contactName: selectedContact?.fullName || undefined,
       ownerId: selectedOwner?.id || "usr-1",
       ownerName: selectedOwner?.name || "Mariana Costa",
-      expectedCloseDate: formattedCloseDate,
+      // Keep the native date input format for the PostgreSQL date column.
+      expectedCloseDate: expectedCloseDate || undefined,
       source,
       tags: tagsArray,
       notes: existingNotes,
@@ -223,7 +223,7 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
                 onChange={(e) => handlePipelineChange(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white rounded-xl text-sm font-medium text-slate-800 outline-hidden cursor-pointer"
               >
-                {MOCK_PIPELINES.map((p) => (
+                {availablePipelines.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>
@@ -263,7 +263,7 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
                   type="number"
                   required
                   min="0"
-                  step="100"
+                  step="0.01"
                   placeholder="0,00"
                   value={value}
                   onChange={(e) => setValue(e.target.value)}

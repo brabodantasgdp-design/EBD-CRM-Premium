@@ -315,6 +315,27 @@ export interface DealItem {
   customFields?: DealCustomField[];
 }
 
+export interface PipelineStageEntity {
+  id: string;
+  pipelineId: string;
+  name: string;
+  position: number;
+  probability: number;
+  color?: string;
+  stageType: "open" | "won" | "lost";
+}
+
+export interface PipelineEntity {
+  id: string;
+  organizationId: string;
+  name: string;
+  description?: string;
+  status: "active" | "archived";
+  isDefault: boolean;
+  position: number;
+  stages: PipelineStageEntity[];
+}
+
 export type ContactDeal = DealItem;
 
 export interface ContactCompany {
@@ -569,6 +590,7 @@ export interface CRMContextType {
   contacts: ContactItem[];
   companies: CompanyItem[];
   deals: DealItem[];
+  pipelines: PipelineEntity[];
   tasks: TaskItem[];
   activities: ActivityItem[];
 
@@ -608,6 +630,10 @@ export interface CRMContextType {
   updateDeal: (id: string, updates: Partial<DealItem>) => void;
   archiveDeal: (id: string) => void;
   bulkArchiveDeals: (ids: string[]) => void;
+  moveDealStage: (id: string, pipelineId: string, stageId: string, note?: string) => void;
+  markDealWon: (id: string) => void;
+  markDealLost: (id: string, reason: string, note?: string) => void;
+  reopenDeal: (id: string, pipelineId: string, stageId: string) => void;
   setDeals: Dispatch<SetStateAction<DealItem[]>>;
 
   // Task Actions

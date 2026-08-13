@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useCRM } from "../../context/CRMContext";
 import { PeriodOption, DealItem } from "../../types/crm";
 import {
@@ -17,6 +17,7 @@ import { MarkLostModal } from "./MarkLostModal";
 import { ReopenDealModal } from "./ReopenDealModal";
 import { PipelineConfigPreviewModal } from "./PipelineConfigPreviewModal";
 import { DealDetailDrawer } from "./DealDetailDrawer";
+import { hasSupabaseConfiguration } from "../../lib/supabase/env";
 
 interface DealsPageProps {
   onShowToast?: (message: string) => void;
@@ -34,12 +35,15 @@ export const DealsPage: React.FC<DealsPageProps> = ({
   onShowToast,
   currentPeriod = "este_mes",
 }) => {
-  const { deals, companies, contacts, addDeal, updateDeal, archiveDeal, bulkArchiveDeals } = useCRM();
+  const { deals, companies, contacts, pipelines, addDeal, updateDeal, moveDealStage, markDealWon, markDealLost, reopenDeal, archiveDeal, bulkArchiveDeals } = useCRM();
+  const commercialPersistence = hasSupabaseConfiguration();
+  const realPipelines = useMemo<PipelineConfig[]>(() => pipelines.map((pipeline) => ({ id: pipeline.id, name: pipeline.name, description: pipeline.description || "", isDefault: pipeline.isDefault, stages: pipeline.stages.map((stage) => ({ id: stage.id, pipelineId: stage.pipelineId, name: stage.name, order: stage.position + 1, probability: stage.probability, color: stage.color || "slate" })) })), [pipelines]);
 
   // Active Pipeline & View Mode
   const [activePipeline, setActivePipeline] = useState<PipelineConfig>(
     MOCK_PIPELINES[0]
   );
+  useEffect(() => { if (realPipelines.length && !realPipelines.some((pipeline) => pipeline.id === activePipeline.id)) setActivePipeline(realPipelines.find((pipeline) => pipeline.isDefault) || realPipelines[0]); }, [realPipelines, activePipeline.id]);
   const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
 
   // Filters State
@@ -162,7 +166,8 @@ export const DealsPage: React.FC<DealsPageProps> = ({
       newStatus = "won";
     }
 
-    updateDeal(dealId, {
+    if (pipelines.length) moveDealStage(dealId, activePipeline.id, targetStage.id, "Movido pela interface");
+    else updateDeal(dealId, {
       pipelineId: activePipeline.id,
       pipelineName: activePipeline.name,
       stageId: targetStage.id,
@@ -187,7 +192,8 @@ export const DealsPage: React.FC<DealsPageProps> = ({
   const handleConfirmMarkLost = (reason: string, note?: string) => {
     if (!markLostDeal) return;
     const nowFormatted = `${new Date().toLocaleDateString("pt-BR")} ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
-    updateDeal(markLostDeal.id, {
+    if (pipelines.length) markDealLost(markLostDeal.id, reason, note);
+    else updateDeal(markLostDeal.id, {
       status: "lost",
       probability: 0,
       lossReason: reason,
@@ -206,8 +212,9 @@ export const DealsPage: React.FC<DealsPageProps> = ({
     probability: number
   ) => {
     if (!reopenDealItem) return;
-    const pipe = MOCK_PIPELINES.find((p) => p.id === pId);
-    updateDeal(reopenDealItem.id, {
+    const pipe = (realPipelines.length ? realPipelines : MOCK_PIPELINES).find((p) => p.id === pId);
+    if (pipelines.length) reopenDeal(reopenDealItem.id, pId, stgId);
+    else updateDeal(reopenDealItem.id, {
       status: "open",
       pipelineId: pId,
       pipelineName: pipe?.name || activePipeline.name,
@@ -225,7 +232,8 @@ export const DealsPage: React.FC<DealsPageProps> = ({
 
   const handleMarkWon = (deal: DealItem) => {
     const nowFormatted = `${new Date().toLocaleDateString("pt-BR")} ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
-    updateDeal(deal.id, {
+    if (pipelines.length) markDealWon(deal.id);
+    else updateDeal(deal.id, {
       status: "won",
       stageId: "stg-ganho",
       stageName: "Fechado / Ganho",
@@ -249,15 +257,7 @@ export const DealsPage: React.FC<DealsPageProps> = ({
     stageName: string,
     probability: number
   ) => {
-    selectedDealIds.forEach((id) => {
-      updateDeal(id, {
-        pipelineId: activePipeline.id,
-        pipelineName: activePipeline.name,
-        stageId,
-        stageName,
-        probability,
-      });
-    });
+    selectedDealIds.forEach((id) => pipelines.length ? moveDealStage(id, activePipeline.id, stageId, "Movimentação em massa") : updateDeal(id, { pipelineId: activePipeline.id, pipelineName: activePipeline.name, stageId, stageName, probability }));
     toast(`${selectedDealIds.length} negócios movidos para "${stageName}".`);
     setSelectedDealIds([]);
   };
@@ -285,6 +285,7 @@ export const DealsPage: React.FC<DealsPageProps> = ({
       {/* 1. Header with Title, Pipeline Selector & Primary Actions */}
       <DealsHeader
         activePipeline={activePipeline}
+        pipelines={realPipelines.length ? realPipelines : MOCK_PIPELINES}
         onSelectPipeline={(p) => {
           setActivePipeline(p);
           toast(`Funil alterado para: ${p.name}`);
@@ -292,6 +293,10 @@ export const DealsPage: React.FC<DealsPageProps> = ({
         viewMode={viewMode}
         onViewModeChange={(mode) => setViewMode(mode)}
         onOpenCreateModal={() => {
+          if (commercialPersistence && !realPipelines.length) {
+            toast("Aguarde o carregamento dos pipelines reais.");
+            return;
+          }
           setDealToEdit(null);
           setInitialStageForCreate(null);
           setIsFormModalOpen(true);
@@ -372,6 +377,7 @@ export const DealsPage: React.FC<DealsPageProps> = ({
         availableCompanies={companies}
         availableContacts={contacts}
         availableOwners={AVAILABLE_OWNERS}
+        availablePipelines={commercialPersistence ? realPipelines : MOCK_PIPELINES}
         onSave={handleSaveDeal}
       />
 
@@ -388,6 +394,7 @@ export const DealsPage: React.FC<DealsPageProps> = ({
         isOpen={Boolean(reopenDealItem)}
         onClose={() => setReopenDealItem(null)}
         deal={reopenDealItem}
+        availablePipelines={commercialPersistence ? realPipelines : MOCK_PIPELINES}
         onConfirm={handleConfirmReopen}
       />
 
@@ -395,6 +402,7 @@ export const DealsPage: React.FC<DealsPageProps> = ({
       <PipelineConfigPreviewModal
         isOpen={isPipelineConfigOpen}
         onClose={() => setIsPipelineConfigOpen(false)}
+        pipelines={commercialPersistence ? realPipelines : MOCK_PIPELINES}
       />
 
       {/* 360° Detail Drawer */}

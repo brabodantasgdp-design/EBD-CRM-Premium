@@ -184,6 +184,8 @@ export const DealsKanban: React.FC<DealsKanbanProps> = ({
                         key={deal.id}
                         data-testid={`kanban-card-${deal.id}`}
                         data-deal-id={deal.id}
+                        data-stage-id={deal.stageId}
+                        data-pipeline-id={deal.pipelineId}
                         draggable
                         onDragStart={(e) => handleDragStart(e, deal.id)}
                         className={`bg-white rounded-xl border p-3.5 shadow-2xs hover:shadow-md transition-all group relative cursor-grab active:cursor-grabbing ${

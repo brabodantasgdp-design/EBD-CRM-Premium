@@ -44,7 +44,7 @@ export const DealsBulkActions: React.FC<DealsBulkActionsProps> = ({
 
   return (
     <>
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-200">
+      <div data-testid="deals-bulk-actions" className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-200">
         <div className="flex items-center gap-2 pr-3 border-r border-slate-700 text-xs font-semibold">
           <span className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-xs">
             {selectedCount}
@@ -57,6 +57,7 @@ export const DealsBulkActions: React.FC<DealsBulkActionsProps> = ({
           <div className="relative">
             <button
               type="button"
+              data-testid="deals-bulk-stage-trigger"
               onClick={() => {
                 setShowStageSelect(!showStageSelect);
                 setShowOwnerSelect(false);
@@ -76,6 +77,7 @@ export const DealsBulkActions: React.FC<DealsBulkActionsProps> = ({
                   <button
                     key={s.id}
                     type="button"
+                    data-testid={`deals-bulk-stage-${s.id}`}
                     onClick={() => handleStageSelect(s)}
                     className="w-full text-left px-3 py-1.5 hover:bg-indigo-50 hover:text-indigo-700 flex items-center justify-between cursor-pointer"
                   >
