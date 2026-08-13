@@ -145,7 +145,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
         ownerName: selectedOwner?.name || "Mariana Costa",
         ownerAvatar: selectedOwner?.avatar,
         tags: formData.tags,
-        score: initialLead?.score || Math.floor(Math.random() * 30) + 60,
+        score: initialLead?.score ?? 65,
         createdAt: initialLead?.createdAt || new Date().toLocaleDateString("pt-BR"),
         updatedAt: "agora",
         lastActivityText: "agora",

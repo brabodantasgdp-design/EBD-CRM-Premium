@@ -1,0 +1,35 @@
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "../../src/types/database.types";
+
+type Client = SupabaseClient<Database>;
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+if (!url || !key || !process.env.E2E_OWNER_A_EMAIL || !process.env.E2E_OWNER_A_PASSWORD || !process.env.E2E_OWNER_B_EMAIL || !process.env.E2E_OWNER_B_PASSWORD) throw new Error("Integration environment is incomplete");
+const login = async (email: string, password: string) => {
+  const client = createClient<Database>(url!, key!, { auth: { persistSession: false, autoRefreshToken: false } });
+  const result = await client.auth.signInWithPassword({ email, password });
+  if (result.error || !result.data.user) throw new Error("Fixture login failed");
+  return { client, userId: result.data.user.id };
+};
+const ownerA = await login(process.env.E2E_OWNER_A_EMAIL!, process.env.E2E_OWNER_A_PASSWORD!);
+const ownerB = await login(process.env.E2E_OWNER_B_EMAIL!, process.env.E2E_OWNER_B_PASSWORD!);
+const must = <T>(label: string, result: { data: T; error: { message: string } | null }) => { if (result.error) throw new Error(`${label}: ${result.error.message}`); return result.data; };
+const expect = (value: boolean, message: string) => { if (!value) throw new Error(`ASSERTION FAILED: ${message}`); };
+const orgA = must("Org A", await ownerA.client.from("organizations").select("id").eq("created_by", ownerA.userId).limit(1).single()).id;
+const orgB = must("Org B", await ownerB.client.from("organizations").select("id").eq("created_by", ownerB.userId).limit(1).single()).id;
+const pipeline = must("Pipeline", await ownerA.client.from("pipelines").select("id").eq("organization_id", orgA).eq("is_default", true).is("archived_at", null).limit(1).single());
+const stage = must("Open stage", await ownerA.client.from("pipeline_stages").select("id").eq("pipeline_id", pipeline.id).eq("organization_id", orgA).eq("stage_type", "open").limit(1).single());
+const marker = `phase09-${Date.now()}`;
+const lead = must("Create lead", await ownerA.client.from("leads").insert({ organization_id: orgA, created_by: ownerA.userId, owner_id: ownerA.userId, name: `Lead ${marker}`, company_name: `Company ${marker}`, email: `${marker}@example.test`, phone: "5511999999999", status: "new", source: "test", score: 65 }).select("*").single());
+const edited = must("Edit lead", await ownerA.client.from("leads").update({ name: `Lead edited ${marker}` }).eq("id", lead.id).eq("organization_id", orgA).select("id, name").single());
+expect(edited.name.includes("edited"), "lead edit persists");
+const conversion = must("Convert lead", await ownerA.client.rpc("convert_lead", { target_lead: lead.id, target_pipeline: pipeline.id, target_stage: stage.id, target_company_name: `Company ${marker}`, target_contact_name: `Contact ${marker}`, target_deal_name: `Deal ${marker}`, target_value: 1000 }));
+expect(Boolean(conversion), "conversion returned linked IDs");
+const reconvert = await ownerA.client.rpc("convert_lead", { target_lead: lead.id, target_pipeline: pipeline.id, target_stage: stage.id });
+expect(Boolean(reconvert.error), "reconversion blocked");
+const otherTenantRead = await ownerB.client.from("leads").select("id").eq("id", lead.id);
+const otherTenantEdit = await ownerB.client.from("leads").update({ name: "forbidden" }).eq("id", lead.id).select("id");
+expect((otherTenantRead.data?.length ?? 0) === 0 && (otherTenantEdit.data?.length ?? 0) === 0, "cross-tenant lead blocked");
+const audit = must("Lead audit", await ownerA.client.from("audit_logs").select("action").eq("entity_id", lead.id));
+expect(audit.some((item) => item.action === "lead.created") && audit.some((item) => item.action === "lead.converted"), "lead audit events exist");
+console.log(JSON.stringify({ leadId: lead.id, organizationId: orgA, conversion, auditActions: audit.map((item) => item.action), crossTenant: true }));

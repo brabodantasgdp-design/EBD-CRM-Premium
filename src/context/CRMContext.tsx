@@ -434,7 +434,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
   );
   const [pipelines, setPipelines] = useState<PipelineEntity[]>([]);
   const [leads, setLeads] = useState<LeadItem[]>(
-    MOCK_LEADS.map(({ tasks: _tasks, activities: _activities, ...lead }) => lead)
+    commercialPersistence ? [] : MOCK_LEADS.map(({ tasks: _tasks, activities: _activities, ...lead }) => lead)
   );
   const [tasks, setTasks] = useState<TaskItem[]>(MOCK_TASKS_SEED);
   const [activities, setActivities] = useState<ActivityItem[]>(MOCK_ACTIVITIES_SEED);
@@ -443,26 +443,30 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!commercialPersistence) return;
     let cancelled = false;
     const loadCommercialData = async () => {
-      const [companiesResponse, contactsResponse, pipelinesResponse, dealsResponse] = await Promise.all([
+      const [companiesResponse, contactsResponse, pipelinesResponse, dealsResponse, leadsResponse] = await Promise.all([
         fetch("/api/commercial/companies", { cache: "no-store" }),
         fetch("/api/commercial/contacts", { cache: "no-store" }),
         fetch("/api/commercial/pipelines", { cache: "no-store" }),
         fetch("/api/commercial/deals", { cache: "no-store" }),
+        fetch("/api/commercial/leads", { cache: "no-store" }),
       ]);
       const companiesJson = companiesResponse.headers.get("content-type")?.includes("application/json") ?? false;
       const contactsJson = contactsResponse.headers.get("content-type")?.includes("application/json") ?? false;
       const pipelinesJson = pipelinesResponse.headers.get("content-type")?.includes("application/json") ?? false;
       const dealsJson = dealsResponse.headers.get("content-type")?.includes("application/json") ?? false;
-      if (!companiesResponse.ok || !contactsResponse.ok || !pipelinesResponse.ok || !dealsResponse.ok || !companiesJson || !contactsJson || !pipelinesJson || !dealsJson || cancelled) return;
+      const leadsJson = leadsResponse.headers.get("content-type")?.includes("application/json") ?? false;
+      if (!companiesResponse.ok || !contactsResponse.ok || !pipelinesResponse.ok || !dealsResponse.ok || !leadsResponse.ok || !companiesJson || !contactsJson || !pipelinesJson || !dealsJson || !leadsJson || cancelled) return;
       const companiesPayload = await companiesResponse.json() as { companies?: CompanyItem[] };
       const contactsPayload = await contactsResponse.json() as { contacts?: ContactItem[] };
       const pipelinesPayload = await pipelinesResponse.json() as { pipelines?: PipelineEntity[] };
       const dealsPayload = await dealsResponse.json() as { deals?: DealItem[] };
+      const leadsPayload = await leadsResponse.json() as { leads?: LeadItem[] };
       if (!cancelled) {
         setCompanies(companiesPayload.companies ?? []);
         setContacts(contactsPayload.contacts ?? []);
         setPipelines(pipelinesPayload.pipelines ?? []);
         setDeals(dealsPayload.deals ?? []);
+        setLeads(leadsPayload.leads ?? []);
       }
     };
     void loadCommercialData();
@@ -524,35 +528,47 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
       ...leadData,
     };
     setLeads((prev) => [newLead, ...prev]);
+    if (commercialPersistence) {
+      void fetch("/api/commercial/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(leadData) })
+        .then(async (response) => { if (!response.ok) throw new Error("lead persistence failed"); const payload = await response.json() as { lead?: LeadItem }; if (payload.lead) setLeads((prev) => [payload.lead as LeadItem, ...prev.filter((item) => item.id !== newLead.id)]); })
+        .catch(() => setLeads((prev) => prev.filter((item) => item.id !== newLead.id)));
+    }
     return newLead;
   };
 
   const updateLead = (id: string, updates: Partial<LeadItem>) => {
     setLeads((prev) => prev.map((lead) => lead.id === id ? { ...lead, ...updates, updatedAt: "agora" } : lead));
+    if (commercialPersistence) void fetch(`/api/commercial/leads/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updates) }).then(async (response) => { if (!response.ok) throw new Error(); const payload = await response.json() as { lead?: LeadItem }; if (payload.lead) setLeads((prev) => prev.map((item) => item.id === id ? payload.lead as LeadItem : item)); }).catch(() => undefined);
   };
 
   const archiveLead = (id: string) => {
     setLeads((prev) => prev.map((lead) => lead.id === id ? { ...lead, archivedAt: new Date().toISOString(), archived: true } : lead));
+    if (commercialPersistence) void fetch(`/api/commercial/leads/${id}`, { method: "DELETE" }).then(() => undefined).catch(() => undefined);
   };
 
   const bulkArchiveLeads = (ids: string[]) => {
     setLeads((prev) => prev.map((lead) => ids.includes(lead.id) ? { ...lead, archivedAt: new Date().toISOString(), archived: true } : lead));
+    if (commercialPersistence) void fetch("/api/commercial/leads/bulk", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids, updates: { archivedAt: new Date().toISOString() } }) }).catch(() => undefined);
   };
 
   const bulkUpdateLeadsOwner = (ids: string[], ownerId: string, ownerName: string, ownerAvatar?: string) => {
     setLeads((prev) => prev.map((lead) => ids.includes(lead.id) ? { ...lead, ownerId, ownerName, ownerAvatar, updatedAt: "agora" } : lead));
+    if (commercialPersistence) void fetch("/api/commercial/leads/bulk", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids, updates: { ownerId } }) }).catch(() => undefined);
   };
 
   const bulkUpdateLeadsStatus = (ids: string[], status: LeadStatus) => {
     setLeads((prev) => prev.map((lead) => ids.includes(lead.id) ? { ...lead, status, updatedAt: "agora" } : lead));
+    if (commercialPersistence) void fetch("/api/commercial/leads/bulk", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids, updates: { status } }) }).catch(() => undefined);
   };
 
   const bulkAddLeadTag = (ids: string[], tag: string) => {
     setLeads((prev) => prev.map((lead) => ids.includes(lead.id) && !lead.tags.includes(tag) ? { ...lead, tags: [...lead.tags, tag], updatedAt: "agora" } : lead));
+    if (commercialPersistence) void Promise.all(ids.map((id) => { const lead = leads.find((item) => item.id === id); return fetch(`/api/commercial/leads/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tags: [...new Set([...(lead?.tags || []), tag])] }) }); })).catch(() => undefined);
   };
 
   const bulkRemoveLeadTag = (ids: string[], tag: string) => {
     setLeads((prev) => prev.map((lead) => ids.includes(lead.id) ? { ...lead, tags: lead.tags.filter((item) => item !== tag), updatedAt: "agora" } : lead));
+    if (commercialPersistence) void Promise.all(ids.map((id) => { const lead = leads.find((item) => item.id === id); return fetch(`/api/commercial/leads/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tags: (lead?.tags || []).filter((item) => item !== tag) }) }); })).catch(() => undefined);
   };
 
   // --- CONTACTS HANDLERS ---

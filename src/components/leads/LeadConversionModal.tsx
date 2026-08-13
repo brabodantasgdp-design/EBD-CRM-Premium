@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { X, ArrowUpRight, Building2, User, DollarSign, CheckCircle2 } from "lucide-react";
-import { LeadItem } from "../../types/crm";
+import { LeadItem, PipelineEntity } from "../../types/crm";
 
 interface LeadConversionModalProps {
   isOpen: boolean;
   lead: LeadItem | null;
   onClose: () => void;
   onConfirmConvert: (leadId: string, convertedData: any) => void;
+  pipelines: PipelineEntity[];
 }
 
 export const LeadConversionModal: React.FC<LeadConversionModalProps> = ({
@@ -14,6 +15,7 @@ export const LeadConversionModal: React.FC<LeadConversionModalProps> = ({
   lead,
   onClose,
   onConfirmConvert,
+  pipelines,
 }) => {
   const [contactName, setContactName] = useState(lead?.name || "");
   const [companyName, setCompanyName] = useState(
@@ -22,10 +24,16 @@ export const LeadConversionModal: React.FC<LeadConversionModalProps> = ({
   const [dealName, setDealName] = useState(
     `Projeto Expansão ${lead?.company || lead?.name || "Novo Lead"}`
   );
-  const [pipelineName, setPipelineName] = useState("Vendas B2B");
-  const [stageName, setStageName] = useState("Qualificação");
+  const [pipelineId, setPipelineId] = useState("");
+  const [stageId, setStageId] = useState("");
   const [estimatedValue, setEstimatedValue] = useState("45000");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  React.useEffect(() => {
+    const pipeline = pipelines[0];
+    setPipelineId(pipeline?.id || "");
+    setStageId(pipeline?.stages.find((stage) => stage.stageType === "open")?.id || "");
+  }, [pipelines, isOpen]);
 
   if (!isOpen || !lead) return null;
 
@@ -35,12 +43,16 @@ export const LeadConversionModal: React.FC<LeadConversionModalProps> = ({
 
     setTimeout(() => {
       setIsSubmitting(false);
+      const pipeline = pipelines.find((item) => item.id === pipelineId);
+      const stage = pipeline?.stages.find((item) => item.id === stageId);
       onConfirmConvert(lead.id, {
         contactName,
         companyName,
         dealName,
-        pipelineName,
-        stageName,
+        pipelineId,
+        stageId,
+        pipelineName: pipeline?.name || "",
+        stageName: stage?.name || "",
         estimatedValue: parseFloat(estimatedValue) || 45000,
         convertedAt: new Date().toLocaleDateString("pt-BR"),
       });
@@ -84,7 +96,7 @@ export const LeadConversionModal: React.FC<LeadConversionModalProps> = ({
           <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 flex items-start gap-2">
             <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
             <p className="text-[11px] font-medium leading-relaxed">
-              Esta é uma simulação de conversão. Em produção, este fluxo gerará as entidades reais no banco de dados. No protótipo, o status do lead <strong>{lead.name}</strong> será alterado localmente para <strong>Convertido</strong> e a reconversão ficará bloqueada.
+              A conversão cria Company, Contact e Deal reais em uma única transação. O lead <strong>{lead.name}</strong> não poderá ser convertido novamente.
             </p>
           </div>
 
@@ -137,13 +149,11 @@ export const LeadConversionModal: React.FC<LeadConversionModalProps> = ({
                 Pipeline
               </label>
               <select
-                value={pipelineName}
-                onChange={(e) => setPipelineName(e.target.value)}
+                value={pipelineId}
+                onChange={(e) => { const id = e.target.value; setPipelineId(id); setStageId(pipelines.find((item) => item.id === id)?.stages.find((stage) => stage.stageType === "open")?.id || ""); }}
                 className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-2 font-medium"
               >
-                <option value="Vendas B2B">Vendas B2B</option>
-                <option value="Expansão Base">Expansão Base</option>
-                <option value="Parcerias">Parcerias</option>
+                {pipelines.map((pipeline) => <option key={pipeline.id} value={pipeline.id}>{pipeline.name}</option>)}
               </select>
             </div>
 
@@ -152,14 +162,11 @@ export const LeadConversionModal: React.FC<LeadConversionModalProps> = ({
                 Etapa
               </label>
               <select
-                value={stageName}
-                onChange={(e) => setStageName(e.target.value)}
+                value={stageId}
+                onChange={(e) => setStageId(e.target.value)}
                 className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-2 font-medium"
               >
-                <option value="Qualificação">Qualificação</option>
-                <option value="Diagnóstico">Diagnóstico</option>
-                <option value="Proposta">Proposta</option>
-                <option value="Negociação">Negociação</option>
+                {pipelines.find((item) => item.id === pipelineId)?.stages.filter((stage) => stage.stageType === "open").map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}
               </select>
             </div>
 
@@ -191,7 +198,7 @@ export const LeadConversionModal: React.FC<LeadConversionModalProps> = ({
               disabled={isSubmitting}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 transition-colors shadow-xs active:scale-98 disabled:opacity-50"
             >
-              {isSubmitting ? "Convertendo..." : "Converter (Simulado)"}
+              {isSubmitting ? "Convertendo..." : "Converter Lead"}
             </button>
           </div>
         </form>
