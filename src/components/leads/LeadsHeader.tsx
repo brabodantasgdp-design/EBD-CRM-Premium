@@ -5,12 +5,14 @@ interface LeadsHeaderProps {
   onOpenNewLead: () => void;
   onOpenImport: () => void;
   onOpenExport: () => void;
+  canWrite?: boolean;
 }
 
 export const LeadsHeader: React.FC<LeadsHeaderProps> = ({
   onOpenNewLead,
   onOpenImport,
   onOpenExport,
+  canWrite = true,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -46,24 +48,24 @@ export const LeadsHeader: React.FC<LeadsHeaderProps> = ({
           <span>Importar</span>
         </button>
 
-        <button
+        {canWrite && <button
           onClick={onOpenNewLead}
           className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs active:scale-98"
         >
           <Plus className="h-4 w-4" />
           <span>Novo lead</span>
-        </button>
+        </button>}
       </div>
 
       {/* Mobile Action Controls */}
       <div className="flex sm:hidden items-center gap-2 mt-1">
-        <button
+        {canWrite && <button
           onClick={onOpenNewLead}
           className="flex-1 inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs active:scale-98"
         >
           <Plus className="h-4 w-4" />
           <span>Novo lead</span>
-        </button>
+        </button>}
 
         <div className="relative">
           <button

@@ -551,6 +551,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
         onOpenNewLead={handleOpenCreate}
         onOpenImport={() => setImportModalOpen(true)}
         onOpenExport={() => setExportMenuOpen(true)}
+        canWrite={canWriteLeads}
       />
 
       {/* 2. Compact Performance Metrics Strip */}
