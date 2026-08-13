@@ -13,6 +13,7 @@ interface LeadTableProps {
   onOpenEdit: (lead: LeadItem) => void;
   onOpenConvert: (lead: LeadItem) => void;
   onOpenDisqualify: (lead: LeadItem) => void;
+  canWrite?: boolean;
 }
 
 export const LeadTable: React.FC<LeadTableProps> = ({
@@ -24,6 +25,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({
   onOpenEdit,
   onOpenConvert,
   onOpenDisqualify,
+  canWrite = true,
 }) => {
   const isAllSelected = leads.length > 0 && selectedIds.length === leads.length;
   const isSomeSelected = selectedIds.length > 0 && selectedIds.length < leads.length;
@@ -178,14 +180,14 @@ export const LeadTable: React.FC<LeadTableProps> = ({
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                      <button
+                      {canWrite && <button
                         onClick={() => onOpenEdit(lead)}
                         className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
                         title="Editar Lead"
                       >
                         <Edit3 className="h-4 w-4" />
-                      </button>
-                      {lead.status !== "converted" ? (
+                      </button>}
+                      {canWrite && (lead.status !== "converted" ? (
                         <button
                           onClick={() => onOpenConvert(lead)}
                           className="p-1 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
@@ -200,8 +202,8 @@ export const LeadTable: React.FC<LeadTableProps> = ({
                         >
                           <ArrowUpRight className="h-4 w-4 opacity-40" />
                         </span>
-                      )}
-                      {lead.status !== "disqualified" && (
+                      ))}
+                      {canWrite && lead.status !== "disqualified" && (
                         <button
                           onClick={() => onOpenDisqualify(lead)}
                           className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"

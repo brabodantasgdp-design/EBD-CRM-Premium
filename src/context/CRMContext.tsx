@@ -436,6 +436,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [leads, setLeads] = useState<LeadItem[]>(
     commercialPersistence ? [] : MOCK_LEADS.map(({ tasks: _tasks, activities: _activities, ...lead }) => lead)
   );
+  const [currentOrganizationRole, setCurrentOrganizationRole] = useState<string | null>(null);
   const [tasks, setTasks] = useState<TaskItem[]>(MOCK_TASKS_SEED);
   const [activities, setActivities] = useState<ActivityItem[]>(MOCK_ACTIVITIES_SEED);
 
@@ -455,18 +456,24 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
       const pipelinesJson = pipelinesResponse.headers.get("content-type")?.includes("application/json") ?? false;
       const dealsJson = dealsResponse.headers.get("content-type")?.includes("application/json") ?? false;
       const leadsJson = leadsResponse.headers.get("content-type")?.includes("application/json") ?? false;
+      if (leadsResponse.status === 403 && leadsJson) {
+        const denied = await leadsResponse.json() as { role?: string };
+        if (!cancelled) { setLeads([]); setCurrentOrganizationRole(denied.role ?? "suspended"); }
+        return;
+      }
       if (!companiesResponse.ok || !contactsResponse.ok || !pipelinesResponse.ok || !dealsResponse.ok || !leadsResponse.ok || !companiesJson || !contactsJson || !pipelinesJson || !dealsJson || !leadsJson || cancelled) return;
       const companiesPayload = await companiesResponse.json() as { companies?: CompanyItem[] };
       const contactsPayload = await contactsResponse.json() as { contacts?: ContactItem[] };
       const pipelinesPayload = await pipelinesResponse.json() as { pipelines?: PipelineEntity[] };
       const dealsPayload = await dealsResponse.json() as { deals?: DealItem[] };
-      const leadsPayload = await leadsResponse.json() as { leads?: LeadItem[] };
+      const leadsPayload = await leadsResponse.json() as { leads?: LeadItem[]; role?: string };
       if (!cancelled) {
         setCompanies(companiesPayload.companies ?? []);
         setContacts(contactsPayload.contacts ?? []);
         setPipelines(pipelinesPayload.pipelines ?? []);
         setDeals(dealsPayload.deals ?? []);
         setLeads(leadsPayload.leads ?? []);
+        setCurrentOrganizationRole(leadsPayload.role ?? null);
       }
     };
     void loadCommercialData();
@@ -1305,6 +1312,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         pipelines,
         tasks,
         activities,
+        currentOrganizationRole,
         addLead,
         updateLead,
         archiveLead,

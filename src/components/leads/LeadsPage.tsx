@@ -47,7 +47,9 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
     addCompany,
     addDeal,
     pipelines,
+    currentOrganizationRole,
   } = useCRM();
+  const canWriteLeads = currentOrganizationRole !== "viewer" && currentOrganizationRole !== "suspended";
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 
@@ -218,12 +220,14 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
 
   // Actions
   const handleOpenCreate = () => {
+    if (!canWriteLeads) { onShowToast("Seu perfil possui acesso somente leitura."); return; }
     setFormMode("create");
     setEditingLead(null);
     setFormModalOpen(true);
   };
 
   const handleOpenEdit = (lead: LeadItem) => {
+    if (!canWriteLeads) { onShowToast("Seu perfil possui acesso somente leitura."); return; }
     setFormMode("edit");
     setEditingLead(lead);
     setFormModalOpen(true);
@@ -235,6 +239,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
   };
 
   const handleOpenConvert = (lead: LeadItem) => {
+    if (!canWriteLeads) { onShowToast("Seu perfil possui acesso somente leitura."); return; }
     if (lead.status === "converted") {
       onShowToast("Este lead já foi convertido e não pode ser reconvertido.");
       return;
@@ -563,8 +568,9 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
       {/* 4. Leads List / Cards Grid */}
       {filteredLeads.length > 0 ? (
         viewMode === "table" ? (
-          <LeadTable
-            leads={filteredLeads}
+            <LeadTable
+              leads={filteredLeads}
+              canWrite={canWriteLeads}
             selectedIds={selectedIds}
             onToggleSelect={handleToggleSelect}
             onToggleSelectAll={handleToggleSelectAll}
@@ -576,9 +582,10 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {filteredLeads.map((lead) => (
-              <LeadCard
-                key={lead.id}
-                lead={lead}
+                <LeadCard
+                  key={lead.id}
+                  lead={lead}
+                  canWrite={canWriteLeads}
                 isSelected={selectedIds.includes(lead.id)}
                 onToggleSelect={handleToggleSelect}
                 onOpenDetail={handleOpenDetail}
@@ -635,7 +642,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
       )}
 
       {/* 5. Contextual Bulk Actions Bar */}
-      <LeadBulkActions
+      {canWriteLeads && <LeadBulkActions
         selectedCount={selectedIds.length}
         onClearSelection={() => setSelectedIds([])}
         onBulkUpdateOwner={handleBulkUpdateOwner}
@@ -645,17 +652,17 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
         onBulkCreateTask={handleBulkCreateTask}
         onBulkExport={handleBulkExport}
         onBulkArchive={handleBulkArchive}
-      />
+      />}
 
       {/* Modals & Drawers */}
-      <LeadFormModal
+      {canWriteLeads && <LeadFormModal
         isOpen={formModalOpen}
         mode={formMode}
         initialLead={editingLead}
         existingEmails={leads.map((l) => l.email).filter(Boolean)}
         onClose={() => setFormModalOpen(false)}
         onSubmitSuccess={handleSaveLead}
-      />
+      />}
 
       <LeadDetailDrawer
         isOpen={detailDrawerOpen}
@@ -669,13 +676,13 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
         }}
       />
 
-      <LeadConversionModal
+      {canWriteLeads && <LeadConversionModal
         isOpen={convertModalOpen}
         lead={convertingLead}
         onClose={() => setConvertModalOpen(false)}
         onConfirmConvert={handleConfirmConvert}
         pipelines={pipelines}
-      />
+      />}
 
       <LeadDisqualificationModal
         isOpen={disqualifyModalOpen}

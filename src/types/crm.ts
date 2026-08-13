@@ -593,6 +593,7 @@ export interface CRMContextType {
   pipelines: PipelineEntity[];
   tasks: TaskItem[];
   activities: ActivityItem[];
+  currentOrganizationRole?: string | null;
 
   addLead: (lead: Partial<LeadItem>) => LeadItem;
   updateLead: (id: string, updates: Partial<LeadItem>) => void;
