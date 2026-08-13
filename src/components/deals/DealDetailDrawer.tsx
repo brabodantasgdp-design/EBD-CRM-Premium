@@ -89,6 +89,19 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
   // Note Form state
   const [noteContent, setNoteContent] = useState("");
 
+  useEffect(() => {
+    if (!isOpen || !deal) {
+      setDealProposals([]);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/commercial/proposals?dealId=${deal.id}`, { cache: "no-store" })
+      .then((response) => response.ok ? response.json() as Promise<{ proposals: Array<{ id: string; number: string; title: string; status: string; total: number }> }> : Promise.reject(new Error("proposal_load")))
+      .then((payload) => { if (!cancelled) setDealProposals(payload.proposals ?? []); })
+      .catch(() => { if (!cancelled) setDealProposals([]); });
+    return () => { cancelled = true; };
+  }, [deal, isOpen]);
+
   if (!isOpen || !deal) return null;
 
   const activities = getEntityActivities("deal", deal.id).map((activity) => ({
@@ -105,16 +118,6 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
   const products: DealProduct[] = [];
   const notes = deal.notes || [];
   const stageHistory = deal.stageHistory || [];
-
-  useEffect(() => {
-    if (!isOpen || !deal) return;
-    let cancelled = false;
-    fetch(`/api/commercial/proposals?dealId=${deal.id}`, { cache: "no-store" })
-      .then((response) => response.ok ? response.json() as Promise<{ proposals: Array<{ id: string; number: string; title: string; status: string; total: number }> }> : Promise.reject(new Error("proposal_load")))
-      .then((payload) => { if (!cancelled) setDealProposals(payload.proposals ?? []); })
-      .catch(() => { if (!cancelled) setDealProposals([]); });
-    return () => { cancelled = true; };
-  }, [deal, isOpen]);
 
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("pt-BR", {
