@@ -65,6 +65,12 @@ export type Database = {
         Update: { id?: string; organization_id?: string; name?: string; company_id?: string | null; contact_id?: string | null; pipeline_id?: string; stage_id?: string; owner_id?: string | null; value?: number; currency?: string; probability?: number; status?: string; expected_close_date?: string | null; loss_reason?: string | null; loss_note?: string | null; won_at?: string | null; lost_at?: string | null; tags?: string[]; custom_fields?: Json; created_by?: string; created_at?: string; updated_at?: string; archived_at?: string | null };
         Relationships: [];
       };
+      leads: {
+        Row: { id: string; organization_id: string; name: string; company_name: string | null; email: string | null; phone: string | null; status: string; source: string | null; owner_id: string | null; score: number | null; temperature: string | null; tags: string[]; custom_fields: Json; converted_at: string | null; converted_contact_id: string | null; converted_company_id: string | null; converted_deal_id: string | null; created_by: string; created_at: string; updated_at: string; archived_at: string | null };
+        Insert: { id?: string; organization_id: string; name: string; company_name?: string | null; email?: string | null; phone?: string | null; status?: string; source?: string | null; owner_id?: string | null; score?: number | null; temperature?: string | null; tags?: string[]; custom_fields?: Json; converted_at?: string | null; converted_contact_id?: string | null; converted_company_id?: string | null; converted_deal_id?: string | null; created_by: string; created_at?: string; updated_at?: string; archived_at?: string | null };
+        Update: { id?: string; organization_id?: string; name?: string; company_name?: string | null; email?: string | null; phone?: string | null; status?: string; source?: string | null; owner_id?: string | null; score?: number | null; temperature?: string | null; tags?: string[]; custom_fields?: Json; converted_at?: string | null; converted_contact_id?: string | null; converted_company_id?: string | null; converted_deal_id?: string | null; created_by?: string; created_at?: string; updated_at?: string; archived_at?: string | null };
+        Relationships: [];
+      };
       deal_stage_history: {
         Row: { id: string; organization_id: string; deal_id: string; from_pipeline_id: string | null; from_stage_id: string | null; to_pipeline_id: string; to_stage_id: string; changed_by: string | null; note: string | null; created_at: string };
         Insert: { id?: string; organization_id: string; deal_id: string; from_pipeline_id?: string | null; from_stage_id?: string | null; to_pipeline_id: string; to_stage_id: string; changed_by?: string | null; note?: string | null; created_at?: string };
@@ -93,6 +99,8 @@ export type Database = {
       mark_deal_lost: { Args: { target_deal: string; target_reason: string; target_note?: string | null; target_stage?: string | null }; Returns: Database["public"]["Tables"]["deals"]["Row"] };
       reopen_deal: { Args: { target_deal: string; target_pipeline: string; target_stage: string }; Returns: Database["public"]["Tables"]["deals"]["Row"] };
       archive_deal: { Args: { target_deal: string }; Returns: Database["public"]["Tables"]["deals"]["Row"] };
+      can_operate_lead: { Args: { target_organization: string; target_user?: string }; Returns: boolean };
+      convert_lead: { Args: { target_lead: string; target_pipeline: string; target_stage: string; target_company_name?: string | null; target_contact_name?: string | null; target_deal_name?: string | null; target_value?: number }; Returns: Json };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

@@ -18,6 +18,7 @@ import { LeadDisqualificationModal } from "./LeadDisqualificationModal";
 import { LeadImportModal } from "./LeadImportModal";
 import { LeadExportMenu } from "./LeadExportMenu";
 import { Users, SearchX, RotateCcw, Plus } from "lucide-react";
+import { hasSupabaseConfiguration } from "../../lib/supabase/env";
 
 interface LeadsPageProps {
   onShowToast: (message: string) => void;
@@ -45,7 +46,10 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
     addContact,
     addCompany,
     addDeal,
+    pipelines,
+    currentOrganizationRole,
   } = useCRM();
+  const canWriteLeads = currentOrganizationRole !== "viewer" && currentOrganizationRole !== "suspended";
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 
@@ -216,12 +220,14 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
 
   // Actions
   const handleOpenCreate = () => {
+    if (!canWriteLeads) { onShowToast("Seu perfil possui acesso somente leitura."); return; }
     setFormMode("create");
     setEditingLead(null);
     setFormModalOpen(true);
   };
 
   const handleOpenEdit = (lead: LeadItem) => {
+    if (!canWriteLeads) { onShowToast("Seu perfil possui acesso somente leitura."); return; }
     setFormMode("edit");
     setEditingLead(lead);
     setFormModalOpen(true);
@@ -233,6 +239,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
   };
 
   const handleOpenConvert = (lead: LeadItem) => {
+    if (!canWriteLeads) { onShowToast("Seu perfil possui acesso somente leitura."); return; }
     if (lead.status === "converted") {
       onShowToast("Este lead já foi convertido e não pode ser reconvertido.");
       return;
@@ -287,17 +294,21 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
     }
   };
 
-  const handleConfirmConvert = (leadId: string, convertedData: any) => {
+  const handleConfirmConvert = async (leadId: string, convertedData: any) => {
     const sourceLead = leads.find((lead) => lead.id === leadId);
     if (!sourceLead || sourceLead.status === "converted") {
       onShowToast("Este lead já foi convertido e não pode ser reconvertido.");
       return;
     }
-    const company = addCompany({ name: convertedData.companyName, ownerId: sourceLead.ownerId, ownerName: sourceLead.ownerName, source: "Conversão de Lead" });
-    const contact = addContact({ fullName: convertedData.contactName, firstName: convertedData.contactName.split(" ")[0], lastName: convertedData.contactName.split(" ").slice(1).join(" "), email: sourceLead.email, phone: sourceLead.phone, companyId: company.id, companyName: company.name, convertedFromLeadId: sourceLead.id, convertedFromLeadDate: new Date().toLocaleDateString("pt-BR"), ownerId: sourceLead.ownerId, ownerName: sourceLead.ownerName, source: "Conversão de Lead" });
-    const deal = addDeal({ name: convertedData.dealName, companyId: company.id, companyName: company.name, contactId: contact.id, contactName: contact.fullName, pipelineName: convertedData.pipelineName, stageName: convertedData.stageName, value: convertedData.estimatedValue, ownerId: sourceLead.ownerId, ownerName: sourceLead.ownerName, source: "Conversão de Lead" });
-    updateLead(leadId, { status: "converted", convertedContactId: contact.id, convertedCompanyId: company.id, convertedDealId: deal.id, convertedAt: new Date().toLocaleDateString("pt-BR"), lastActivityText: "Convertido em Negócio" });
-    /* Legacy local mutation removed: shared entities above are the source of truth. */
+    if (!convertedData.pipelineId || !convertedData.stageId) { onShowToast("Selecione um pipeline e uma etapa reais."); return; }
+    try {
+      const response = await fetch("/api/commercial/leads/convert", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ leadId, pipelineId: convertedData.pipelineId, stageId: convertedData.stageId, companyName: convertedData.companyName, contactName: convertedData.contactName, dealName: convertedData.dealName, value: convertedData.estimatedValue }) });
+      const payload = await response.json() as { conversion?: { company_id: string; contact_id: string; deal_id: string }; error?: string };
+      if (!response.ok || !payload.conversion) { onShowToast(payload.error || "Não foi possível converter o lead."); return; }
+      updateLead(leadId, { status: "converted", convertedContactId: payload.conversion.contact_id, convertedCompanyId: payload.conversion.company_id, convertedDealId: payload.conversion.deal_id, convertedAt: new Date().toISOString(), lastActivityText: "Convertido em Negócio" });
+      if (selectedDetailLead?.id === leadId) setSelectedDetailLead((prev) => prev ? { ...prev, status: "converted", convertedContactId: payload.conversion?.contact_id, convertedCompanyId: payload.conversion?.company_id, convertedDealId: payload.conversion?.deal_id, convertedAt: new Date().toISOString(), lastActivityText: "Convertido em Negócio" } : null);
+      onShowToast(`Lead convertido! Negócio "${convertedData.dealName}" criado no pipeline.`);
+    } catch { onShowToast("Não foi possível concluir a conversão."); }
     /*
     setLeads((prev) =>
       prev.map((l) =>
@@ -319,9 +330,9 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
           ? {
               ...prev,
               status: "converted",
-              convertedContactId: contact.id,
-              convertedCompanyId: company.id,
-              convertedDealId: deal.id,
+              convertedContactId: sourceLead.convertedContactId,
+              convertedCompanyId: sourceLead.convertedCompanyId,
+              convertedDealId: sourceLead.convertedDealId,
               convertedAt: new Date().toLocaleDateString("pt-BR"),
               lastActivityText: "Convertido em Negócio",
             }
@@ -329,9 +340,6 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
       );
     }
 
-    onShowToast(
-      `Lead convertido! Negócio "${convertedData.dealName}" criado no pipeline.`
-    );
   };
 
   const handleConfirmDisqualify = (
@@ -543,6 +551,7 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
         onOpenNewLead={handleOpenCreate}
         onOpenImport={() => setImportModalOpen(true)}
         onOpenExport={() => setExportMenuOpen(true)}
+        canWrite={canWriteLeads}
       />
 
       {/* 2. Compact Performance Metrics Strip */}
@@ -560,8 +569,9 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
       {/* 4. Leads List / Cards Grid */}
       {filteredLeads.length > 0 ? (
         viewMode === "table" ? (
-          <LeadTable
-            leads={filteredLeads}
+            <LeadTable
+              leads={filteredLeads}
+              canWrite={canWriteLeads}
             selectedIds={selectedIds}
             onToggleSelect={handleToggleSelect}
             onToggleSelectAll={handleToggleSelectAll}
@@ -573,9 +583,10 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {filteredLeads.map((lead) => (
-              <LeadCard
-                key={lead.id}
-                lead={lead}
+                <LeadCard
+                  key={lead.id}
+                  lead={lead}
+                  canWrite={canWriteLeads}
                 isSelected={selectedIds.includes(lead.id)}
                 onToggleSelect={handleToggleSelect}
                 onOpenDetail={handleOpenDetail}
@@ -620,19 +631,19 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
               <RotateCcw className="h-3.5 w-3.5" />
               <span>Limpar Filtros</span>
             </button>
-            <button
+            {canWriteLeads && <button
               onClick={handleOpenCreate}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition-colors shadow-2xs"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Novo Lead</span>
-            </button>
+            </button>}
           </div>
         </div>
       )}
 
       {/* 5. Contextual Bulk Actions Bar */}
-      <LeadBulkActions
+      {canWriteLeads && <LeadBulkActions
         selectedCount={selectedIds.length}
         onClearSelection={() => setSelectedIds([])}
         onBulkUpdateOwner={handleBulkUpdateOwner}
@@ -642,17 +653,17 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
         onBulkCreateTask={handleBulkCreateTask}
         onBulkExport={handleBulkExport}
         onBulkArchive={handleBulkArchive}
-      />
+      />}
 
       {/* Modals & Drawers */}
-      <LeadFormModal
+      {canWriteLeads && <LeadFormModal
         isOpen={formModalOpen}
         mode={formMode}
         initialLead={editingLead}
         existingEmails={leads.map((l) => l.email).filter(Boolean)}
         onClose={() => setFormModalOpen(false)}
         onSubmitSuccess={handleSaveLead}
-      />
+      />}
 
       <LeadDetailDrawer
         isOpen={detailDrawerOpen}
@@ -666,12 +677,13 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
         }}
       />
 
-      <LeadConversionModal
+      {canWriteLeads && <LeadConversionModal
         isOpen={convertModalOpen}
         lead={convertingLead}
         onClose={() => setConvertModalOpen(false)}
         onConfirmConvert={handleConfirmConvert}
-      />
+        pipelines={pipelines}
+      />}
 
       <LeadDisqualificationModal
         isOpen={disqualifyModalOpen}
@@ -684,6 +696,10 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
         isOpen={importModalOpen}
         onClose={() => setImportModalOpen(false)}
         onImportCompleted={(count) => {
+          if (hasSupabaseConfiguration()) {
+            onShowToast("Importação demonstrativa desativada com persistência real. Use a criação manual nesta fase.");
+            return;
+          }
           const importedLeads: LeadItem[] = Array.from({ length: Math.min(count, 3) }).map((_, i) => ({
             id: `imp-${Date.now()}-${i}`,
             organizationId: "org-nexus-01",

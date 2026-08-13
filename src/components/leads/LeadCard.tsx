@@ -22,6 +22,7 @@ interface LeadCardProps {
   onOpenEdit: (lead: LeadItem) => void;
   onOpenConvert: (lead: LeadItem) => void;
   onOpenDisqualify: (lead: LeadItem) => void;
+  canWrite?: boolean;
 }
 
 export const LeadCard: React.FC<LeadCardProps> = ({
@@ -32,6 +33,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({
   onOpenEdit,
   onOpenConvert,
   onOpenDisqualify,
+  canWrite = true,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -96,7 +98,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({
                     <Eye className="h-3.5 w-3.5 text-indigo-600" />
                     <span>Ver detalhes</span>
                   </button>
-                  <button
+                  {canWrite && <button
                     onClick={() => {
                       setMenuOpen(false);
                       onOpenEdit(lead);
@@ -105,8 +107,8 @@ export const LeadCard: React.FC<LeadCardProps> = ({
                   >
                     <Edit3 className="h-3.5 w-3.5 text-slate-500" />
                     <span>Editar lead</span>
-                  </button>
-                  {lead.status !== "converted" ? (
+                  </button>}
+                  {canWrite && (lead.status !== "converted" ? (
                     <button
                       onClick={() => {
                         setMenuOpen(false);
@@ -125,8 +127,8 @@ export const LeadCard: React.FC<LeadCardProps> = ({
                       <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
                       <span>Lead Convertido</span>
                     </div>
-                  )}
-                  {lead.status !== "disqualified" && (
+                  ))}
+                  {canWrite && lead.status !== "disqualified" && (
                     <button
                       onClick={() => {
                         setMenuOpen(false);
