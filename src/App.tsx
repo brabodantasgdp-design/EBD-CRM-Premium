@@ -10,14 +10,9 @@ import { MetricCard } from "./components/dashboard/MetricCard";
 import { RevenueChartCard } from "./components/dashboard/RevenueChartCard";
 import { PipelineOverview } from "./components/dashboard/PipelineOverview";
 import { ForecastCard } from "./components/dashboard/ForecastCard";
-import { RiskDealsList } from "./components/dashboard/RiskDealsList";
 import { ActivityList } from "./components/dashboard/ActivityList";
-import { TeamPerformance } from "./components/dashboard/TeamPerformance";
 import { LeadSourceCard } from "./components/dashboard/LeadSourceCard";
-import { RecentActivityFeed } from "./components/dashboard/RecentActivityFeed";
-import { CopilotInsightCard } from "./components/dashboard/CopilotInsightCard";
 import { QuickCreateModal } from "./components/modals/QuickCreateModal";
-import { DealDetailModal } from "./components/modals/DealDetailModal";
 import { PipelineKanbanModal } from "./components/modals/PipelineKanbanModal";
 import { SkeletonDashboard } from "./components/states/SkeletonDashboard";
 import { EmptyDashboardState } from "./components/states/EmptyDashboardState";
@@ -34,20 +29,7 @@ import { useCRM } from "./context/CRMContext";
 import { calculateDashboardMetrics, calculatePipelineStages, calculateLeadSources, calculateWeightedForecast } from "./utils/crmMetrics";
 import { getLocalDateString } from "./utils/formatters";
 import { Toast } from "./components/common/Toast";
-import { PeriodOption, UIStateMode, RiskDeal } from "./types/crm";
-import {
-  MOCK_METRICS,
-  MOCK_REVENUE_EVOLUTION,
-  MOCK_PIPELINE_STAGES,
-  MOCK_FORECAST,
-  MOCK_TASKS,
-  MOCK_RISK_DEALS,
-  MOCK_TEAM_PERFORMANCE,
-  MOCK_LEAD_METRICS,
-  MOCK_LEAD_SOURCES,
-  MOCK_ACTIVITIES_FEED,
-  MOCK_COPILOT_INSIGHT,
-} from "./data/mockCrmData";
+import { PeriodOption, UIStateMode } from "./types/crm";
 import { Info } from "lucide-react";
 
 export function AppContent({ module = "dashboard" }: { module?: string }) {
@@ -57,6 +39,13 @@ export function AppContent({ module = "dashboard" }: { module?: string }) {
   const dashboardStages = calculatePipelineStages(deals);
   const dashboardLeadSources = calculateLeadSources(leads);
   const weightedForecast = calculateWeightedForecast(deals);
+  const revenueEvolution = deals.filter((deal) => deal.status === "won" && !deal.archivedAt).reduce<Record<string, { receita: number; negocios: number }>>((acc, deal) => {
+    const period = (deal.wonAt || deal.updatedAt || deal.createdAt || "").slice(0, 7) || "Sem período";
+    const current = acc[period] || { receita: 0, negocios: 0 };
+    acc[period] = { receita: current.receita + deal.value, negocios: current.negocios + 1 };
+    return acc;
+  }, {});
+  const revenueChartData = Object.entries(revenueEvolution).sort(([a], [b]) => a.localeCompare(b)).slice(-6).map(([periodLabel, values]) => ({ periodLabel, ...values, receitaAnterior: 0, negociosAnterior: 0 }));
   const activeTab = module;
   const navigateTo = (tab: string) => {
     router.push(`/${tab === "dashboard" ? "dashboard" : tab}`);
@@ -69,7 +58,6 @@ export function AppContent({ module = "dashboard" }: { module?: string }) {
   // Modals & Drawers state
   const [quickCreateOpen, setQuickCreateOpen] = useState<boolean>(false);
   const [quickCreateType, setQuickCreateType] = useState<string>("lead");
-  const [selectedRiskDeal, setSelectedRiskDeal] = useState<RiskDeal | null>(null);
   const [kanbanOpen, setKanbanOpen] = useState<boolean>(false);
 
   // Toast notification
@@ -238,15 +226,15 @@ export function AppContent({ module = "dashboard" }: { module?: string }) {
                   {/* Row 3: Revenue Evolution Chart + Forecast Card */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                     <div className="lg:col-span-2 min-w-0">
-                      <RevenueChartCard data={MOCK_REVENUE_EVOLUTION} />
+                      <RevenueChartCard data={revenueChartData} />
                     </div>
                     <div className="min-w-0">
                       <ForecastCard
                         forecast={{
-                          monthlyGoal: 500000,
+                          monthlyGoal: 0,
                           closedValue: deals.filter((deal) => deal.status === "won" && !deal.archivedAt).reduce((sum, deal) => sum + deal.value, 0),
                           probableValue: weightedForecast,
-                          remainingGoal: Math.max(0, 500000 - weightedForecast),
+                          remainingGoal: 0,
                           closedPercent: 0,
                           probablePercent: 0,
                         }}
@@ -254,24 +242,18 @@ export function AppContent({ module = "dashboard" }: { module?: string }) {
                     </div>
                   </div>
 
-                  {/* Row 4: Pipeline Overview + Deals at Risk */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                  {/* Row 4: Pipeline Overview */}
+                  <div className="grid grid-cols-1 gap-4 sm:gap-6">
                     <div className="min-w-0">
                       <PipelineOverview
                         stages={dashboardStages}
                         onOpenPipelineModal={() => setKanbanOpen(true)}
                       />
                     </div>
-                    <div id="section-risk-deals" className="min-w-0">
-                      <RiskDealsList
-                        deals={MOCK_RISK_DEALS}
-                        onSelectDeal={(deal) => setSelectedRiskDeal(deal)}
-                      />
-                    </div>
                   </div>
 
-                  {/* Row 5: Today Tasks + Team Performance */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                  {/* Row 5: Today Tasks */}
+                  <div className="grid grid-cols-1 gap-4 sm:gap-6">
                     <div id="section-today-tasks" className="min-w-0">
                       <ActivityList
                         onTaskCompleted={(name) =>
@@ -279,26 +261,14 @@ export function AppContent({ module = "dashboard" }: { module?: string }) {
                         }
                       />
                     </div>
-                    <div className="min-w-0">
-                      <TeamPerformance team={MOCK_TEAM_PERFORMANCE} />
-                    </div>
                   </div>
 
-                  {/* Row 6: Lead Metrics/Sources + Recent Activity + Copilot IA */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                  {/* Row 6: Lead Sources */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     <div className="min-w-0">
                       <LeadSourceCard
                         leadMetrics={{ totalNewLeads: leads.filter((lead) => !lead.archivedAt && !lead.archived).length, growthPercent: 0, qualifiedCount: leads.filter((lead) => lead.status === "qualified" && !lead.archivedAt).length, qualificationRatePercent: 0, weeklyTrend: [] }}
                         leadSources={dashboardLeadSources}
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <RecentActivityFeed activities={MOCK_ACTIVITIES_FEED} />
-                    </div>
-                    <div className="min-w-0">
-                      <CopilotInsightCard
-                        insight={MOCK_COPILOT_INSIGHT}
-                        onSelectSuggestion={handleCopilotSuggestion}
                       />
                     </div>
                   </div>
@@ -308,18 +278,17 @@ export function AppContent({ module = "dashboard" }: { module?: string }) {
           )}
         </main>
 
-        {/* Prototype Disclaimer Footer Notice */}
+        {/* Operational data footer */}
         <footer className="mt-auto bg-white border-t border-slate-200 py-3 px-4 sm:px-6 text-center text-[11px] text-slate-500 font-medium pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-3">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 text-slate-600">
               <Info className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
               <span>
-                Este protótipo utiliza dados simulados. Autenticação, banco de dados,
-                permissões, RLS, IA e integrações ainda não estão conectados.
+                Dashboard alimentado por dados reais da organização ativa.
               </span>
             </div>
             <span className="text-slate-400 text-[10px]">
-              Nexus CRM B2B • Protótipo de Front-end
+              Nexus CRM B2B • Dados operacionais
             </span>
           </div>
         </footer>
@@ -338,14 +307,6 @@ export function AppContent({ module = "dashboard" }: { module?: string }) {
           initialType={quickCreateType}
           onClose={() => setQuickCreateOpen(false)}
           onSubmitSuccess={(msg) => showToast(msg)}
-        />
-      )}
-
-      {selectedRiskDeal && (
-        <DealDetailModal
-          deal={selectedRiskDeal}
-          onClose={() => setSelectedRiskDeal(null)}
-          onActionSuccess={(msg) => showToast(msg)}
         />
       )}
 

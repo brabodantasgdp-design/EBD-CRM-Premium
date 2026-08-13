@@ -20,6 +20,8 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
   };
 
   const totalPipelineValue = stages.reduce((acc, s) => acc + s.totalValue, 0);
+  const totalDeals = stages.reduce((acc, s) => acc + s.dealsCount, 0);
+  const maxStageValue = Math.max(...stages.map((stage) => stage.totalValue), 1);
 
   return (
     <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
@@ -36,7 +38,7 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              47 negócios acumulando {formatCurrency(totalPipelineValue)}
+              {totalDeals} negócios acumulando {formatCurrency(totalPipelineValue)}
             </p>
           </div>
 
@@ -54,7 +56,7 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
           {stages.map((stage, idx) => {
             const widthPercent = Math.max(
               25,
-              Math.min(100, (stage.totalValue / 220000) * 100)
+              Math.min(100, (stage.totalValue / maxStageValue) * 100)
             );
 
             return (
