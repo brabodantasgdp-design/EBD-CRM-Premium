@@ -630,13 +630,13 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
               <RotateCcw className="h-3.5 w-3.5" />
               <span>Limpar Filtros</span>
             </button>
-            <button
+            {canWriteLeads && <button
               onClick={handleOpenCreate}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition-colors shadow-2xs"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Novo Lead</span>
-            </button>
+            </button>}
           </div>
         </div>
       )}

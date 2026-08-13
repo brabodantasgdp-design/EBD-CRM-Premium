@@ -14,15 +14,18 @@ def env_values():
         if "=" in line and not line.lstrip().startswith("#"):
             key, value = line.split("=", 1)
             values[key] = value.strip().strip('"').strip("'")
+    for key in ("E2E_VIEWER_A_EMAIL", "E2E_VIEWER_A_PASSWORD", "E2E_SUSPENDED_A_EMAIL", "E2E_SUSPENDED_A_PASSWORD"):
+        if os.environ.get(key):
+            values[key] = os.environ[key]
     return values
 
 
 def login(page, email, password):
-    page.goto(BASE + "/login", wait_until="domcontentloaded", timeout=60000)
-    page.get_by_label("E-mail").fill(email)
-    page.get_by_label("Senha").fill(password)
-    page.get_by_role("button", name=re.compile("Entrar|Login", re.I)).click()
-    page.wait_for_url(re.compile(r"/(dashboard|leads)(/|$)"), timeout=30000)
+    response = page.context.request.post(BASE + "/api/auth/login", form={"email": email, "password": password, "next": "/dashboard"}, headers={"x-vercel-protection-bypass": env_values()["VERCEL_AUTOMATION_BYPASS_SECRET"]}, timeout=60000)
+    if response.status < 200 or response.status >= 300:
+        raise RuntimeError(f"login failed with status {response.status}")
+    page.goto(BASE + "/dashboard", wait_until="domcontentloaded", timeout=60000)
+    page.wait_for_url(re.compile(r"/dashboard(/|$)"), timeout=30000)
 
 
 def api(page, path, method="GET", payload=None):
@@ -74,14 +77,14 @@ def main():
         page.reload(wait_until="domcontentloaded"); page.wait_for_timeout(1800)
         report["owner"]["edit_refresh"] = page.get_by_text(edited_name, exact=True).count() == 1
 
-        ids = [item.get_attribute("data-testid").replace("lead-row-", "") for item in page.locator('[data-testid^="lead-row-"]').all()[:2]]
+        ids = [item.get_attribute("data-testid").replace("lead-row-", "") for item in page.locator('[data-testid^="lead-row-"]').all() if "Convertido" not in item.inner_text()][:2]
         for item_id in ids:
             page.get_by_test_id(f"lead-checkbox-{item_id}").click()
         page.wait_for_timeout(500)
         page.get_by_test_id("bulk-status-trigger").click()
-        with page.expect_response(lambda r: r.request.method == "POST" and "/api/commercial/leads/bulk" in r.url and r.status < 300, timeout=30000):
+        with page.expect_response(lambda r: r.request.method == "PATCH" and "/api/commercial/leads/bulk" in r.url, timeout=30000) as bulk_response:
             page.get_by_role("button", name="Em contato", exact=True).click()
-        report["owner"]["bulk"] = all("Em contato" in page.get_by_test_id(f"lead-row-{item_id}").inner_text() for item_id in ids)
+        report["owner"]["bulk"] = {"status": bulk_response.value.status, "body": bulk_response.value.json(), "rows_updated": all("Em contato" in page.get_by_test_id(f"lead-row-{item_id}").inner_text() for item_id in ids)}
 
         created_row = page.get_by_test_id(f"lead-row-{lead_id}")
         created_row.get_by_title("Converter em Oportunidade").click()
@@ -112,14 +115,9 @@ def main():
         report["desktop"] = page.locator('[data-testid^="lead-row-"]').count() > 0
 
         orgs = owner_orgs.get("body", {}).get("organizations", []) if isinstance(owner_orgs.get("body"), dict) else []
-        if orgs:
-            org_a = orgs[0]["id"]
-            context.add_cookies([{"name": "nexus-active-organization", "value": org_a, "url": BASE, "path": "/"}])
         for role, email_key, password_key in [("viewer", "E2E_VIEWER_A_EMAIL", "E2E_VIEWER_A_PASSWORD"), ("suspended", "E2E_SUSPENDED_A_EMAIL", "E2E_SUSPENDED_A_PASSWORD")]:
             role_context = browser.new_context(viewport={"width": 1366, "height": 900}, extra_http_headers={"x-vercel-protection-bypass": values["VERCEL_AUTOMATION_BYPASS_SECRET"]})
             role_page = role_context.new_page()
-            if orgs:
-                role_page.context.add_cookies([{"name": "nexus-active-organization", "value": orgs[0]["id"], "url": BASE, "path": "/"}])
             login(role_page, values[email_key], values[password_key])
             role_page.goto(BASE + "/leads", wait_until="domcontentloaded"); role_page.wait_for_timeout(1800)
             report[role] = {"route": role_page.url.endswith("/leads"), "new_lead_visible": role_page.get_by_role("button", name=re.compile("Novo lead", re.I)).count() > 0, "edit_controls": role_page.get_by_title("Editar Lead").count(), "bulk_controls": role_page.get_by_test_id("lead-bulk-actions").count(), "api_status": api(role_page, "/api/commercial/leads")["status"]}
