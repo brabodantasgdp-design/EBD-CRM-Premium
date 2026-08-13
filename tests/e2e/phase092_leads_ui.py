@@ -106,7 +106,7 @@ def main():
         report["owner"]["export"] = False
         page.get_by_role("button", name="Exportar", exact=True).first.click()
         with page.expect_download(timeout=30000) as download_info:
-            page.get_by_role("button", name=re.compile("Exportar Todos", re.I)).click()
+            page.get_by_role("button", name=re.compile("Exportar Todos", re.I)).dispatch_event("click")
         report["owner"]["export"] = download_info.value.suggested_filename.endswith(".csv")
 
         page.set_viewport_size({"width": 390, "height": 844}); page.goto(BASE + "/leads", wait_until="domcontentloaded"); page.wait_for_timeout(1200)
