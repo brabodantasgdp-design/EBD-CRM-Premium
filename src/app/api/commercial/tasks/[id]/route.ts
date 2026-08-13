@@ -1,0 +1,7 @@
+import { NextResponse } from "next/server";
+import { getCurrentOrganization, requireUser } from "../../../../../lib/supabase/auth";
+import { archiveTask, getTask, updateTask } from "../../../../../lib/crm/tasks";
+type Context = { params: Promise<{ id: string }> };
+export async function GET(_: Request, context: Context) { const { supabase } = await requireUser(); const org = await getCurrentOrganization(); if (!supabase || !org) return NextResponse.json({ error: "Acesso negado" }, { status: 403 }); const { id } = await context.params; return NextResponse.json({ task: await getTask(supabase, org.id, id) }); }
+export async function PATCH(request: Request, context: Context) { const { supabase } = await requireUser(); const org = await getCurrentOrganization(); if (!supabase || !org) return NextResponse.json({ error: "Acesso negado" }, { status: 403 }); const { id } = await context.params; try { return NextResponse.json({ task: await updateTask(supabase, org.id, id, await request.json()) }); } catch { return NextResponse.json({ error: "NÃ£o foi possÃ­vel atualizar tarefa" }, { status: 400 }); } }
+export async function DELETE(_: Request, context: Context) { const { supabase } = await requireUser(); const org = await getCurrentOrganization(); if (!supabase || !org) return NextResponse.json({ error: "Acesso negado" }, { status: 403 }); const { id } = await context.params; try { return NextResponse.json({ task: await archiveTask(supabase, org.id, id) }); } catch { return NextResponse.json({ error: "NÃ£o foi possÃ­vel arquivar tarefa" }, { status: 400 }); } }

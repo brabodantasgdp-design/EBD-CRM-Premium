@@ -71,6 +71,18 @@ export type Database = {
         Update: { id?: string; organization_id?: string; name?: string; company_name?: string | null; email?: string | null; phone?: string | null; status?: string; source?: string | null; owner_id?: string | null; score?: number | null; temperature?: string | null; tags?: string[]; custom_fields?: Json; converted_at?: string | null; converted_contact_id?: string | null; converted_company_id?: string | null; converted_deal_id?: string | null; created_by?: string; created_at?: string; updated_at?: string; archived_at?: string | null };
         Relationships: [];
       };
+      tasks: {
+        Row: { id: string; organization_id: string; title: string; description: string | null; status: string; priority: string | null; due_date: string | null; due_at: string | null; completed_at: string | null; owner_id: string | null; created_by: string; entity_type: string | null; entity_id: string | null; created_at: string; updated_at: string; archived_at: string | null };
+        Insert: { id?: string; organization_id: string; title: string; description?: string | null; status?: string; priority?: string | null; due_date?: string | null; due_at?: string | null; completed_at?: string | null; owner_id?: string | null; created_by: string; entity_type?: string | null; entity_id?: string | null; created_at?: string; updated_at?: string; archived_at?: string | null };
+        Update: { id?: string; organization_id?: string; title?: string; description?: string | null; status?: string; priority?: string | null; due_date?: string | null; due_at?: string | null; completed_at?: string | null; owner_id?: string | null; created_by?: string; entity_type?: string | null; entity_id?: string | null; created_at?: string; updated_at?: string; archived_at?: string | null };
+        Relationships: [];
+      };
+      activities: {
+        Row: { id: string; organization_id: string; type: string; title: string; description: string | null; status: string; start_at: string; end_at: string | null; owner_id: string | null; created_by: string; entity_type: string | null; entity_id: string | null; created_at: string; updated_at: string; archived_at: string | null };
+        Insert: { id?: string; organization_id: string; type: string; title: string; description?: string | null; status?: string; start_at: string; end_at?: string | null; owner_id?: string | null; created_by: string; entity_type?: string | null; entity_id?: string | null; created_at?: string; updated_at?: string; archived_at?: string | null };
+        Update: { id?: string; organization_id?: string; type?: string; title?: string; description?: string | null; status?: string; start_at?: string; end_at?: string | null; owner_id?: string | null; created_by?: string; entity_type?: string | null; entity_id?: string | null; created_at?: string; updated_at?: string; archived_at?: string | null };
+        Relationships: [];
+      };
       deal_stage_history: {
         Row: { id: string; organization_id: string; deal_id: string; from_pipeline_id: string | null; from_stage_id: string | null; to_pipeline_id: string; to_stage_id: string; changed_by: string | null; note: string | null; created_at: string };
         Insert: { id?: string; organization_id: string; deal_id: string; from_pipeline_id?: string | null; from_stage_id?: string | null; to_pipeline_id: string; to_stage_id: string; changed_by?: string | null; note?: string | null; created_at?: string };
@@ -94,6 +106,8 @@ export type Database = {
       can_view_profile: { Args: { target_user: string; viewer?: string }; Returns: boolean };
       can_manage_pipeline: { Args: { target_organization: string; target_user?: string }; Returns: boolean };
       can_operate_deal: { Args: { target_organization: string; target_user?: string }; Returns: boolean };
+      entity_belongs_to_org: { Args: { target_org: string; target_type: string; target_id: string }; Returns: boolean };
+      can_operate_task_activity: { Args: { target_org: string; target_user?: string }; Returns: boolean };
       move_deal_stage: { Args: { target_deal: string; target_pipeline: string; target_stage: string; target_note?: string | null }; Returns: Database["public"]["Tables"]["deals"]["Row"] };
       mark_deal_won: { Args: { target_deal: string; target_stage?: string | null }; Returns: Database["public"]["Tables"]["deals"]["Row"] };
       mark_deal_lost: { Args: { target_deal: string; target_reason: string; target_note?: string | null; target_stage?: string | null }; Returns: Database["public"]["Tables"]["deals"]["Row"] };
