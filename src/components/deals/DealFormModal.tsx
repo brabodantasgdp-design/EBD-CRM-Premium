@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, Building2, User, DollarSign, Calendar, Tag, GitBranch, Save, MessageSquare } from "lucide-react";
 import { DealItem, CompanyItem, ContactItem } from "../../types/crm";
 import { PipelineConfig, PipelineStageConfig, MOCK_PIPELINES } from "../../data/mockPipelinesData";
-import { formatDateToBR, formatDateToISO, getLocalDateString } from "../../utils/formatters";
+import { formatDateToISO, getLocalDateString } from "../../utils/formatters";
 
 interface DealFormModalProps {
   isOpen: boolean;
@@ -127,9 +127,6 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
       .map((t) => t.trim())
       .filter(Boolean);
 
-    // Format expectedCloseDate to BR string (DD/MM/YYYY) for presentation
-    const formattedCloseDate = formatDateToBR(expectedCloseDate) || "30/09/2026";
-
     // Preserve existing notes and append new note if provided
     let existingNotes = dealToEdit?.notes ? [...dealToEdit.notes] : [];
     if (notesInput.trim()) {
@@ -156,7 +153,8 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
       contactName: selectedContact?.fullName || undefined,
       ownerId: selectedOwner?.id || "usr-1",
       ownerName: selectedOwner?.name || "Mariana Costa",
-      expectedCloseDate: formattedCloseDate,
+      // Keep the native date input format for the PostgreSQL date column.
+      expectedCloseDate: expectedCloseDate || undefined,
       source,
       tags: tagsArray,
       notes: existingNotes,

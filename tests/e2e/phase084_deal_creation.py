@@ -24,7 +24,7 @@ def first_option(select):
 
 def test_create_deal_ui_persists_real_record():
     env = load_env()
-    report = {"post_status": None, "created_visible": False, "refresh_visible": False, "errors": []}
+    report = {"login_status": None, "login_error": None, "post_status": None, "post_error": None, "created_visible": False, "refresh_visible": False, "errors": []}
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True, args=["--no-sandbox"])
         context = browser.new_context(
@@ -33,11 +33,25 @@ def test_create_deal_ui_persists_real_record():
         )
         page = context.new_page()
         page.on("pageerror", lambda error: report["errors"].append(str(error)))
+        def capture_response(response):
+            if response.request.method == "POST" and response.url.endswith("/api/auth/login"):
+                report["login_status"] = response.status
+            if response.request.method == "POST" and "/api/commercial/deals" in response.url:
+                report["post_status"] = response.status
+                if response.status >= 400:
+                    report["post_error"] = response.text()[:300]
+        page.on("response", capture_response)
         page.goto(BASE + "/login", wait_until="domcontentloaded", timeout=60000)
         page.get_by_label("E-mail").fill(env["E2E_OWNER_A_EMAIL"])
         page.get_by_label("Senha").fill(env["E2E_OWNER_A_PASSWORD"])
         page.get_by_role("button", name="Entrar").click()
-        page.wait_for_url("**/dashboard", timeout=60000)
+        try:
+            page.wait_for_url("**/dashboard", timeout=60000)
+        except Exception:
+            report["login_error"] = page.locator("body").inner_text()[:500]
+            print(json.dumps(report, ensure_ascii=True))
+            browser.close()
+            raise
         page.goto(BASE + "/negocios", wait_until="domcontentloaded", timeout=60000)
         page.wait_for_timeout(1200)
         page.get_by_test_id("new-deal-button").click()
@@ -50,9 +64,8 @@ def test_create_deal_ui_persists_real_record():
             option = first_option(selects.nth(index))
             if option:
                 selects.nth(index).select_option(option)
-        with page.expect_response(lambda response: response.request.method == "POST" and "/api/commercial/deals" in response.url, timeout=30000) as response_info:
+        with page.expect_response(lambda response: response.request.method == "POST" and "/api/commercial/deals" in response.url, timeout=30000):
             modal.get_by_role("button", name="Criar Negócio", exact=True).click()
-        report["post_status"] = response_info.value.status
         page.wait_for_timeout(1200)
         report["created_visible"] = page.get_by_text(deal_name, exact=True).count() > 0
         page.reload(wait_until="domcontentloaded", timeout=60000)
