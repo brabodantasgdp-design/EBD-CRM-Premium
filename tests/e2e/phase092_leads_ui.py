@@ -120,7 +120,8 @@ def main():
             role_page = role_context.new_page()
             login(role_page, values[email_key], values[password_key])
             role_page.goto(BASE + "/leads", wait_until="domcontentloaded"); role_page.wait_for_timeout(1800)
-            report[role] = {"route": role_page.url.endswith("/leads"), "new_lead_visible": role_page.get_by_role("button", name=re.compile("Novo lead", re.I)).count() > 0, "edit_controls": role_page.get_by_title("Editar Lead").count(), "bulk_controls": role_page.get_by_test_id("lead-bulk-actions").count(), "api_status": api(role_page, "/api/commercial/leads")["status"]}
+            role_api = api(role_page, "/api/commercial/leads")
+            report[role] = {"route": role_page.url.endswith("/leads"), "new_lead_visible": role_page.get_by_role("button", name=re.compile("Novo lead", re.I)).count() > 0, "edit_controls": role_page.get_by_title("Editar Lead").count(), "bulk_controls": role_page.get_by_test_id("lead-bulk-actions").count(), "api_status": role_api["status"], "role": role_api.get("body", {}).get("role") if isinstance(role_api.get("body"), dict) else None}
             role_context.close()
 
         report["favicon"] = page.request.get(BASE + "/favicon.ico", headers={"x-vercel-protection-bypass": values["VERCEL_AUTOMATION_BYPASS_SECRET"]}).status == 200
