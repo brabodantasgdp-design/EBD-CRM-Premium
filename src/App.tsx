@@ -25,6 +25,8 @@ import { CompaniesPage } from "./components/companies/CompaniesPage";
 import { DealsPage } from "./components/deals/DealsPage";
 import { TasksPage } from "./components/tasks/TasksPage";
 import { AgendaPage } from "./components/agenda/AgendaPage";
+import { ProductsPage } from "./components/products/ProductsPage";
+import { ProposalsPage } from "./components/proposals/ProposalsPage";
 import { useCRM } from "./context/CRMContext";
 import { calculateLeadSources } from "./utils/crmMetrics";
 import { getLocalDateString } from "./utils/formatters";
@@ -200,6 +202,10 @@ export function AppContent({ module = "dashboard" }: { module?: string }) {
                 else if (type === "lead") navigateTo("leads");
               }}
             />
+          ) : module === "produtos" ? (
+            <ProductsPage />
+          ) : module === "propostas" ? (
+            <ProposalsPage />
           ) : module !== "dashboard" ? (
             <ModulePlaceholder
               moduleName={getTabTitle(activeTab)}
