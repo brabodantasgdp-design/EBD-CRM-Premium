@@ -154,6 +154,7 @@ def run():
             page.get_by_role("button", name=re.compile("Confirmar Perda", re.I)).click()
         page.wait_for_timeout(700); check("ui_lost", page.get_by_test_id(f"deal-row-{lost_id}").count() == 1)
 
+        page.get_by_text("Ganhos", exact=True).last.click(); page.wait_for_timeout(500)
         page.get_by_test_id(f"deal-actions-{reopen_id}").click(); page.get_by_text(re.compile("Reabrir Neg", re.I)).click()
         with page.expect_response(lambda response: response.request.method == "POST" and f"/api/commercial/deals/{reopen_id}/reopen" in response.url and response.status < 300, timeout=30000):
             page.get_by_role("button", name=re.compile("Confirmar Reabertura", re.I)).click()

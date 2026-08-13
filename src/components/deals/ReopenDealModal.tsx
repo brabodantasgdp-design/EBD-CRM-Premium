@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { RotateCcw, X, GitBranch } from "lucide-react";
 import { DealItem } from "../../types/crm";
 import { MOCK_PIPELINES, PipelineConfig } from "../../data/mockPipelinesData";
@@ -23,8 +23,20 @@ export const ReopenDealModal: React.FC<ReopenDealModalProps> = ({
   availablePipelines = MOCK_PIPELINES,
   onConfirm,
 }) => {
-  const [pipelineId, setPipelineId] = useState("pipe-b2b");
-  const [stageId, setStageId] = useState("stg-qual");
+  const [pipelineId, setPipelineId] = useState(availablePipelines[0]?.id || "pipe-b2b");
+  const [stageId, setStageId] = useState(availablePipelines[0]?.stages[0]?.id || "stg-qual");
+
+  useEffect(() => {
+    if (!isOpen || !availablePipelines.length) return;
+    const pipeline = availablePipelines.find((item) => item.id === deal?.pipelineId) || availablePipelines[0];
+    const stage = pipeline.stages.find((item) => item.id === deal?.stageId && item.probability > 0 && item.probability < 100)
+      || pipeline.stages.find((item) => item.probability > 0 && item.probability < 100)
+      || pipeline.stages[0];
+    if (pipeline && stage) {
+      setPipelineId(pipeline.id);
+      setStageId(stage.id);
+    }
+  }, [availablePipelines, deal?.pipelineId, deal?.stageId, isOpen]);
 
   if (!isOpen || !deal) return null;
 
