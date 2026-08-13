@@ -1,0 +1,6 @@
+import { NextResponse } from "next/server";
+import { getCurrentOrganization, requireUser } from "../../../../lib/supabase/auth";
+import { updateAutomation } from "../../../../lib/crm/automations";
+type Context = { params: Promise<{ id: string }> };
+export async function PATCH(request: Request, context: Context) { const { supabase } = await requireUser(); const org = await getCurrentOrganization(); if (!supabase || !org) return NextResponse.json({ error: "Acesso negado" }, { status: 403 }); try { return NextResponse.json({ automation: await updateAutomation(supabase, org.id, (await context.params).id, await request.json()) }); } catch { return NextResponse.json({ error: "Não foi possível atualizar automação" }, { status: 400 }); } }
+export async function DELETE(_: Request, context: Context) { const { supabase } = await requireUser(); const org = await getCurrentOrganization(); if (!supabase || !org) return NextResponse.json({ error: "Acesso negado" }, { status: 403 }); try { return NextResponse.json({ automation: await updateAutomation(supabase, org.id, (await context.params).id, { status: "archived" }) }); } catch { return NextResponse.json({ error: "Não foi possível arquivar automação" }, { status: 400 }); } }

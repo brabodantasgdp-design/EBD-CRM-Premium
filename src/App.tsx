@@ -27,6 +27,7 @@ import { TasksPage } from "./components/tasks/TasksPage";
 import { AgendaPage } from "./components/agenda/AgendaPage";
 import { ProductsPage } from "./components/products/ProductsPage";
 import { ProposalsPage } from "./components/proposals/ProposalsPage";
+import { AutomationsPage } from "./components/automations/AutomationsPage";
 import { useCRM } from "./context/CRMContext";
 import { calculateLeadSources } from "./utils/crmMetrics";
 import { getLocalDateString } from "./utils/formatters";
@@ -206,6 +207,8 @@ export function AppContent({ module = "dashboard" }: { module?: string }) {
             <ProductsPage />
           ) : module === "propostas" ? (
             <ProposalsPage />
+          ) : module === "automacoes" ? (
+            <AutomationsPage />
           ) : module !== "dashboard" ? (
             <ModulePlaceholder
               moduleName={getTabTitle(activeTab)}

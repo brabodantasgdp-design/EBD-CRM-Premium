@@ -117,6 +117,137 @@ export type Database = {
           },
         ]
       }
+      automation_runs: {
+        Row: {
+          attempt: number
+          automation_id: string
+          context: Json
+          created_at: string
+          depth: number
+          error_code: string | null
+          error_message_sanitized: string | null
+          event_chain_id: string
+          event_type: string
+          finished_at: string | null
+          id: string
+          idempotency_key: string
+          organization_id: string
+          result: Json
+          started_at: string | null
+          status: string
+          trigger_entity_id: string
+          trigger_entity_type: string
+        }
+        Insert: {
+          attempt?: number
+          automation_id: string
+          context?: Json
+          created_at?: string
+          depth?: number
+          error_code?: string | null
+          error_message_sanitized?: string | null
+          event_chain_id: string
+          event_type: string
+          finished_at?: string | null
+          id?: string
+          idempotency_key: string
+          organization_id: string
+          result?: Json
+          started_at?: string | null
+          status?: string
+          trigger_entity_id: string
+          trigger_entity_type: string
+        }
+        Update: {
+          attempt?: number
+          automation_id?: string
+          context?: Json
+          created_at?: string
+          depth?: number
+          error_code?: string | null
+          error_message_sanitized?: string | null
+          event_chain_id?: string
+          event_type?: string
+          finished_at?: string | null
+          id?: string
+          idempotency_key?: string
+          organization_id?: string
+          result?: Json
+          started_at?: string | null
+          status?: string
+          trigger_entity_id?: string
+          trigger_entity_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_runs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_runs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automations: {
+        Row: {
+          actions: Json
+          archived_at: string | null
+          conditions: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          organization_id: string
+          status: string
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          actions?: Json
+          archived_at?: string | null
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          status?: string
+          trigger_type: string
+          updated_at?: string
+        }
+        Update: {
+          actions?: Json
+          archived_at?: string | null
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          status?: string
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: Json | null
@@ -460,6 +591,87 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pipeline_stages"
             referencedColumns: ["id", "pipeline_id"]
+          },
+        ]
+      }
+      follow_ups: {
+        Row: {
+          archived_at: string | null
+          automation_id: string | null
+          cancelled_at: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          entity_id: string
+          entity_type: string
+          id: string
+          organization_id: string
+          owner_id: string | null
+          payload: Json
+          processed_at: string | null
+          processing_attempts: number
+          scheduled_for: string
+          source: string
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          automation_id?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          organization_id: string
+          owner_id?: string | null
+          payload?: Json
+          processed_at?: string | null
+          processing_attempts?: number
+          scheduled_for: string
+          source?: string
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          automation_id?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          organization_id?: string
+          owner_id?: string | null
+          payload?: Json
+          processed_at?: string | null
+          processing_attempts?: number
+          scheduled_for?: string
+          source?: string
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follow_ups_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_ups_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1137,6 +1349,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      can_manage_automations: {
+        Args: { target_org: string; target_user?: string }
+        Returns: boolean
       }
       can_manage_members: {
         Args: { target_organization: string; target_user?: string }
