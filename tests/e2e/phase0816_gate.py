@@ -76,7 +76,9 @@ def run():
         page.get_by_role("button", name=re.compile("Neg.*cios", re.I)).last.click(); page.wait_for_timeout(300)
         check("contact_refresh", page.get_by_text(related["name"], exact=True).count() > 0)
 
-        open_deals = [d for d in deals if d.get("status") == "open" and not d.get("archivedAt") and d.get("pipelineId") == related.get("pipelineId")][:2]
+        open_deals = [d for d in deals if d.get("status") == "open" and not d.get("archivedAt") and d.get("pipelineId") == related.get("pipelineId")]
+        open_deals = open_deals[:2]
+        control_deal = next((d for d in [x for x in deals if x.get("status") == "open" and not x.get("archivedAt") and x.get("pipelineId") == related.get("pipelineId")] if d["id"] not in {o["id"] for o in open_deals}), None)
         check("bulk_fixture", len(open_deals) == 2, [d["id"] for d in open_deals])
         if len(open_deals) == 2:
             page.goto(BASE + "/negocios", wait_until="domcontentloaded"); page.wait_for_timeout(1500); page.get_by_test_id("deals-list-view").last.click(); page.wait_for_timeout(400)
@@ -94,9 +96,9 @@ def run():
                 page.wait_for_timeout(800); page.reload(wait_until="domcontentloaded"); page.wait_for_timeout(1200)
                 refreshed = api("/api/commercial/deals")["body"]["deals"]
                 refreshed_by_id = {d["id"]: d for d in refreshed}
-                api_bulk = all(refreshed_by_id.get(d["id"], {}).get("stageId") != d.get("stageId") for d in open_deals)
-                visible_bulk = all(page.get_by_test_id(f"deal-row-{d['id']}" ).count() == 1 for d in open_deals)
-                check("bulk_stage_refresh", api_bulk and visible_bulk, {"api": api_bulk, "visible": visible_bulk})
+                api_bulk = all(refreshed_by_id.get(d["id"], {}).get("stageId") == target_stage["id"] for d in open_deals)
+                control_unchanged = control_deal is None or refreshed_by_id.get(control_deal["id"], {}).get("stageId") == control_deal.get("stageId")
+                check("bulk_stage_refresh", api_bulk and control_unchanged, {"api": api_bulk, "control": control_unchanged})
             else: check("bulk_stage_ui", False, "stage menu unavailable")
 
         page.goto(BASE + "/negocios", wait_until="domcontentloaded"); page.wait_for_timeout(1500)
@@ -108,12 +110,13 @@ def run():
         expected_forecast = sum(float(d.get("value", 0)) * float(d.get("probability", 0)) / 100 for d in open_items)
         expected_won = len(won_items)
         body = page.locator("body").inner_text()
-        money = lambda n: re.sub(r"\s+", " ", f"R$ {n:,.0f}".replace(",", "X").replace(".", ",").replace("X", "."))
+        money = lambda n: re.sub(r"\s+", " ", f"R$ {n:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")).replace("R$ ", "R$ ")
+        normalize = lambda text: re.sub(r"\s+", " ", text.replace("\xa0", " "))
         open_text = page.get_by_test_id("deals-kpi-open-pipeline").inner_text()
         forecast_text = page.get_by_test_id("deals-kpi-forecast").inner_text()
         won_text = page.get_by_test_id("deals-kpi-won").inner_text()
-        check("kpi_open", money(expected_open) in open_text, {"expected": expected_open, "rendered": open_text})
-        check("kpi_forecast", money(expected_forecast) in forecast_text, {"expected": expected_forecast, "rendered": forecast_text})
+        check("kpi_open", money(expected_open) in normalize(open_text), {"expected": expected_open, "rendered": open_text})
+        check("kpi_forecast", money(expected_forecast) in normalize(forecast_text), {"expected": expected_forecast, "rendered": forecast_text})
         check("kpi_won", str(expected_won) in won_text, {"expected": expected_won, "rendered": won_text})
         check("console_clean", not report["console"]); check("pageerrors_clean", not report["pageerrors"]); check("no_5xx", not report["unexpected"])
         browser.close()
