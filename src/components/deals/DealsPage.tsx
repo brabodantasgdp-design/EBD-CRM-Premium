@@ -388,6 +388,7 @@ export const DealsPage: React.FC<DealsPageProps> = ({
         isOpen={Boolean(reopenDealItem)}
         onClose={() => setReopenDealItem(null)}
         deal={reopenDealItem}
+        availablePipelines={realPipelines.length ? realPipelines : MOCK_PIPELINES}
         onConfirm={handleConfirmReopen}
       />
 
@@ -395,6 +396,7 @@ export const DealsPage: React.FC<DealsPageProps> = ({
       <PipelineConfigPreviewModal
         isOpen={isPipelineConfigOpen}
         onClose={() => setIsPipelineConfigOpen(false)}
+        pipelines={realPipelines.length ? realPipelines : MOCK_PIPELINES}
       />
 
       {/* 360° Detail Drawer */}

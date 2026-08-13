@@ -225,7 +225,7 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
                 onChange={(e) => handlePipelineChange(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white rounded-xl text-sm font-medium text-slate-800 outline-hidden cursor-pointer"
               >
-                {MOCK_PIPELINES.map((p) => (
+                {availablePipelines.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>

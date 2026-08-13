@@ -1,15 +1,17 @@
 import React from "react";
 import { Settings, X, GitBranch, Layers, CheckCircle } from "lucide-react";
-import { MOCK_PIPELINES } from "../../data/mockPipelinesData";
+import { MOCK_PIPELINES, PipelineConfig } from "../../data/mockPipelinesData";
 
 interface PipelineConfigPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
+  pipelines?: PipelineConfig[];
 }
 
 export const PipelineConfigPreviewModal: React.FC<PipelineConfigPreviewModalProps> = ({
   isOpen,
   onClose,
+  pipelines = MOCK_PIPELINES,
 }) => {
   if (!isOpen) return null;
 
@@ -45,7 +47,7 @@ export const PipelineConfigPreviewModal: React.FC<PipelineConfigPreviewModalProp
           </p>
 
           <div className="space-y-3">
-            {MOCK_PIPELINES.map((p) => (
+            {pipelines.map((p) => (
               <div
                 key={p.id}
                 className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-2"
