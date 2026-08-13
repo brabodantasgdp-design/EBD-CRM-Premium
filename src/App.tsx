@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "./components/layout/Sidebar";
 import { Topbar } from "./components/layout/Topbar";
@@ -26,33 +26,51 @@ import { DealsPage } from "./components/deals/DealsPage";
 import { TasksPage } from "./components/tasks/TasksPage";
 import { AgendaPage } from "./components/agenda/AgendaPage";
 import { useCRM } from "./context/CRMContext";
-import { calculateDashboardMetrics, calculatePipelineStages, calculateLeadSources, calculateWeightedForecast } from "./utils/crmMetrics";
+import { calculateLeadSources } from "./utils/crmMetrics";
 import { getLocalDateString } from "./utils/formatters";
 import { Toast } from "./components/common/Toast";
 import { PeriodOption, UIStateMode } from "./types/crm";
+import type { DashboardMetricsSnapshot } from "./lib/crm/dashboard/metrics";
 import { Info } from "lucide-react";
 
 export function AppContent({ module = "dashboard" }: { module?: string }) {
   const router = useRouter();
-  const { leads, deals, tasks, activities } = useCRM();
-  const dashboardMetrics = calculateDashboardMetrics(deals, leads);
-  const dashboardStages = calculatePipelineStages(deals);
+  const { leads } = useCRM();
+  const [currentPeriod, setCurrentPeriod] = useState<PeriodOption>("este_mes");
+  const [dashboardSnapshot, setDashboardSnapshot] = useState<DashboardMetricsSnapshot | null>(null);
+  const [dashboardError, setDashboardError] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    setDashboardSnapshot(null);
+    setDashboardError(false);
+    fetch(`/api/dashboard/metrics?period=${currentPeriod === "trimestre" || currentPeriod === "personalizado" ? "este_mes" : currentPeriod}`, { cache: "no-store" })
+      .then(async (response) => { if (!response.ok) throw new Error("dashboard metrics"); return response.json() as Promise<{ metrics: DashboardMetricsSnapshot }>; })
+      .then((payload) => { if (!cancelled) setDashboardSnapshot(payload.metrics); })
+      .catch(() => { if (!cancelled) setDashboardError(true); });
+    return () => { cancelled = true; };
+  }, [currentPeriod]);
+  const dashboardMetrics = useMemo(() => {
+    const snapshot = dashboardSnapshot;
+    const currency = (value: number) => `R$ ${value.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`;
+    return [
+      { id: "metric-receita", label: "Receita ganha", value: currency(snapshot?.wonRevenue ?? 0), numericValue: snapshot?.wonRevenue ?? 0, tooltipText: "Soma dos negócios ganhos no período.", iconName: "TrendingUp" },
+      { id: "metric-pipeline", label: "Pipeline aberto", value: currency(snapshot?.openPipeline ?? 0), numericValue: snapshot?.openPipeline ?? 0, secondaryText: `${(snapshot?.pipelineStages ?? []).reduce((sum, stage) => sum + stage.dealsCount, 0)} negócios ativos`, tooltipText: "Soma do valor dos negócios abertos na organização.", iconName: "Filter" },
+      { id: "metric-conversao", label: "Conversão comercial", value: `${(snapshot?.winRate ?? 0).toFixed(1).replace(".", ",")}%`, numericValue: snapshot?.winRate ?? 0, tooltipText: "Negócios ganhos divididos por ganhos e perdas no período.", iconName: "Target" },
+      { id: "metric-ticket", label: "Ticket médio", value: currency(snapshot?.averageTicket ?? 0), numericValue: snapshot?.averageTicket ?? 0, tooltipText: "Valor médio dos negócios ganhos no período.", iconName: "DollarSign" },
+      { id: "metric-ganhos", label: "Negócios ganhos", value: String(snapshot?.wonDeals ?? 0), numericValue: snapshot?.wonDeals ?? 0, tooltipText: "Quantidade de negócios ganhos no período.", iconName: "CheckCircle2" },
+      { id: "metric-leads", label: "Leads ativos", value: String(snapshot?.activeLeads ?? 0), numericValue: snapshot?.activeLeads ?? 0, tooltipText: "Leads ativos na organização atual.", iconName: "Clock" },
+    ];
+  }, [dashboardSnapshot]);
+  const dashboardStages = (dashboardSnapshot?.pipelineStages ?? []).map((stage) => ({ id: stage.id, name: stage.name, dealsCount: stage.dealsCount, totalValue: stage.totalValue, conversionRatePercent: 0, color: stage.color }));
   const dashboardLeadSources = calculateLeadSources(leads);
-  const weightedForecast = calculateWeightedForecast(deals);
-  const revenueEvolution = deals.filter((deal) => deal.status === "won" && !deal.archivedAt).reduce<Record<string, { receita: number; negocios: number }>>((acc, deal) => {
-    const period = (deal.wonAt || deal.updatedAt || deal.createdAt || "").slice(0, 7) || "Sem período";
-    const current = acc[period] || { receita: 0, negocios: 0 };
-    acc[period] = { receita: current.receita + deal.value, negocios: current.negocios + 1 };
-    return acc;
-  }, {});
-  const revenueChartData = Object.entries(revenueEvolution).sort(([a], [b]) => a.localeCompare(b)).slice(-6).map(([periodLabel, values]) => ({ periodLabel, ...values, receitaAnterior: 0, negociosAnterior: 0 }));
+  const weightedForecast = dashboardSnapshot?.forecast ?? 0;
+  const revenueChartData = dashboardSnapshot?.revenueHistory ?? [];
   const activeTab = module;
   const navigateTo = (tab: string) => {
     router.push(`/${tab === "dashboard" ? "dashboard" : tab}`);
   };
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
-  const [currentPeriod, setCurrentPeriod] = useState<PeriodOption>("este_mes");
   const [uiState, setUiState] = useState<UIStateMode>("normal");
 
   // Modals & Drawers state
@@ -207,7 +225,9 @@ export function AppContent({ module = "dashboard" }: { module?: string }) {
 
               {uiState === "no_permission" && <PermissionState />}
 
-              {uiState === "normal" && (
+              {uiState === "normal" && dashboardError && <ErrorDashboardState onRetry={() => window.location.reload()} />}
+              {uiState === "normal" && !dashboardError && !dashboardSnapshot && <SkeletonDashboard />}
+              {uiState === "normal" && !dashboardError && dashboardSnapshot && (
                 <div className="space-y-5 sm:space-y-6 min-w-0">
                   {/* Row 1: Header Context Banner */}
                   <DashboardHeader
@@ -232,7 +252,7 @@ export function AppContent({ module = "dashboard" }: { module?: string }) {
                       <ForecastCard
                         forecast={{
                           monthlyGoal: 0,
-                          closedValue: deals.filter((deal) => deal.status === "won" && !deal.archivedAt).reduce((sum, deal) => sum + deal.value, 0),
+                          closedValue: dashboardSnapshot.wonRevenue,
                           probableValue: weightedForecast,
                           remainingGoal: 0,
                           closedPercent: 0,
@@ -267,7 +287,7 @@ export function AppContent({ module = "dashboard" }: { module?: string }) {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     <div className="min-w-0">
                       <LeadSourceCard
-                        leadMetrics={{ totalNewLeads: leads.filter((lead) => !lead.archivedAt && !lead.archived).length, growthPercent: 0, qualifiedCount: leads.filter((lead) => lead.status === "qualified" && !lead.archivedAt).length, qualificationRatePercent: 0, weeklyTrend: [] }}
+                        leadMetrics={{ totalNewLeads: dashboardSnapshot.newLeads, growthPercent: 0, qualifiedCount: dashboardSnapshot.convertedLeads, qualificationRatePercent: 0, weeklyTrend: [] }}
                         leadSources={dashboardLeadSources}
                       />
                     </div>
