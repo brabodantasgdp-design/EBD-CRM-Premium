@@ -160,6 +160,7 @@ def run():
             page.get_by_role("button", name=re.compile("Confirmar Reabertura", re.I)).click()
         page.wait_for_timeout(700); check("ui_reopen", page.get_by_test_id(f"deal-row-{reopen_id}").count() == 1)
 
+        page.get_by_text("Abertos", exact=True).last.click(); page.wait_for_timeout(500)
         page.get_by_test_id(f"deal-actions-{archive_id}").click(); page.get_by_text(re.compile("Arquivar Neg", re.I)).click()
         page.wait_for_timeout(700); check("ui_archive", page.get_by_test_id(f"deal-row-{archive_id}").count() == 0)
         page.reload(wait_until="domcontentloaded"); page.wait_for_timeout(700); check("ui_archive_refresh", page.get_by_test_id(f"deal-row-{archive_id}").count() == 0)
