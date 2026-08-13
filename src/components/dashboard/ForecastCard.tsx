@@ -17,10 +17,11 @@ export const ForecastCard: React.FC<ForecastCardProps> = ({ forecast }) => {
     }).format(val);
   };
 
-  const closedPct = Math.min(100, (forecast.closedValue / forecast.monthlyGoal) * 100);
+  const hasGoal = forecast.monthlyGoal > 0;
+  const closedPct = hasGoal ? Math.min(100, (forecast.closedValue / forecast.monthlyGoal) * 100) : 0;
   const probablePct = Math.min(
     100 - closedPct,
-    ((forecast.probableValue - forecast.closedValue) / forecast.monthlyGoal) * 100
+    hasGoal ? ((forecast.probableValue - forecast.closedValue) / forecast.monthlyGoal) * 100 : 0
   );
   const remainingPct = Math.max(0, 100 - closedPct - probablePct);
 
@@ -50,13 +51,13 @@ export const ForecastCard: React.FC<ForecastCardProps> = ({ forecast }) => {
                   </button>
                   {showTooltip && (
                     <div className="absolute left-0 top-6 w-60 p-2.5 bg-slate-900 text-white text-[11px] font-medium rounded-xl shadow-xl z-30 pointer-events-none leading-relaxed border border-slate-800">
-                      Forecast ponderado considera o valor dos negócios multiplicado pela probabilidade estimada da etapa. (Conceito visual simulado)
+                      Forecast ponderado considera o valor dos negócios multiplicado pela probabilidade estimada da etapa.
                     </div>
                   )}
                 </div>
               </div>
               <p className="text-xs text-slate-500">
-                Meta do mês: <strong className="text-slate-800">{formatCurrency(forecast.monthlyGoal)}</strong>
+                {hasGoal ? <>Meta do mês: <strong className="text-slate-800">{formatCurrency(forecast.monthlyGoal)}</strong></> : "Meta não configurada"}
               </p>
             </div>
           </div>
@@ -69,7 +70,7 @@ export const ForecastCard: React.FC<ForecastCardProps> = ({ forecast }) => {
         {/* Forecast Segmented Progress Bar */}
         <div className="space-y-2 mb-4">
           <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-            <span>Progresso da Meta</span>
+            <span>{hasGoal ? "Progresso da Meta" : "Forecast real"}</span>
             <span data-testid="metric-weighted-forecast" className="text-indigo-600">
               Ponderado: {formatCurrency(forecast.probableValue)} ({forecast.probablePercent}%)
             </span>
@@ -140,7 +141,7 @@ export const ForecastCard: React.FC<ForecastCardProps> = ({ forecast }) => {
       <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center gap-2 text-xs text-amber-800 bg-amber-50/60 p-2.5 rounded-xl border border-amber-200/60">
         <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
         <span className="text-[11px] font-medium leading-snug">
-          Faltam apenas <strong>{formatCurrency(forecast.remainingGoal)}</strong> em vendas para bater a meta do mês.
+          {hasGoal ? <>Faltam <strong>{formatCurrency(forecast.remainingGoal)}</strong> em vendas para bater a meta.</> : "Meta comercial não configurada."}
         </span>
       </div>
     </div>

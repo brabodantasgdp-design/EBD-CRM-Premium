@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   CheckSquare,
   Clock,
@@ -23,7 +23,12 @@ export const ActivityList: React.FC<ActivityListProps> = ({
   onTaskCompleted,
 }) => {
   const { tasks: sharedTasks, activities: sharedActivities, completeTask, reopenTask, completeActivity } = useCRM();
-  const [activeFilter, setActiveFilter] = useState<"minhas" | "equipe" | "atrasadas">("minhas");
+  const [activeFilter, setActiveFilter] = useState<"minhas" | "equipe" | "atrasadas">("equipe");
+  const [today, setToday] = useState<string | null>(null);
+
+  useEffect(() => {
+    setToday(getLocalDateString());
+  }, []);
 
   const toggleTaskCompletion = (taskId: string) => {
     const task = sharedTasks.find((item) => item.id === taskId);
@@ -44,19 +49,19 @@ export const ActivityList: React.FC<ActivityListProps> = ({
 
   const tasks = useMemo<CRMTask[]>(() => [
     ...sharedTasks
-    .filter((task) => !task.archivedAt && task.dueDate === getLocalDateString())
+    .filter((task) => today !== null && !task.archivedAt && task.dueDate === today)
     .map((task) => ({
       id: task.id,
       time: task.dueTime || "09:00",
       type: "Follow-up" as const,
       companyName: task.title || task.entityName || "Sem vínculo",
       assigneeName: task.ownerName,
-      status: (task.status === "completed" ? "concluida" : task.dueDate < getLocalDateString() ? "atrasada" : "pendente") as CRMTask["status"],
-      isMine: task.ownerId === "usr-1",
+      status: (task.status === "completed" ? "concluida" : task.dueDate < (today || "") ? "atrasada" : "pendente") as CRMTask["status"],
+      isMine: false,
       priority: (task.priority === "high" ? "alta" : task.priority === "low" ? "baixa" : "media") as CRMTask["priority"],
     })),
     ...sharedActivities
-      .filter((activity) => !activity.archivedAt && activity.startAt.startsWith(getLocalDateString()))
+      .filter((activity) => today !== null && !activity.archivedAt && activity.startAt.startsWith(today))
       .map((activity) => ({
         id: activity.id,
         time: activity.startAt.includes("T") ? activity.startAt.split("T")[1].slice(0, 5) : "09:00",
@@ -64,10 +69,10 @@ export const ActivityList: React.FC<ActivityListProps> = ({
         companyName: activity.title,
         assigneeName: activity.ownerName,
         status: (activity.status === "completed" ? "concluida" : "pendente") as CRMTask["status"],
-        isMine: activity.ownerId === "usr-1",
+        isMine: false,
         priority: "media" as const,
       })),
-  ], [sharedActivities, sharedTasks]);
+  ], [sharedActivities, sharedTasks, today]);
 
   const filteredTasks = tasks.filter((task) => {
     if (activeFilter === "minhas") return task.isMine;

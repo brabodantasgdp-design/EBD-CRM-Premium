@@ -171,7 +171,7 @@ export const RevenueChartCard: React.FC<RevenueChartCardProps> = ({ data }) => {
 
         <div className="hidden sm:flex items-center gap-1 text-emerald-600 font-bold">
           <TrendingUp className="h-3.5 w-3.5" />
-          <span>+18,4% crescimento</span>
+          <span>Dados reais</span>
         </div>
       </div>
     </div>
