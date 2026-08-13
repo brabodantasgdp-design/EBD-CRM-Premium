@@ -61,7 +61,7 @@ export const DealsMetrics: React.FC<DealsMetricsProps> = ({
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
       {/* 1. Pipeline Aberto */}
-      <div className="bg-white rounded-xl p-3.5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+      <div data-testid="deals-kpi-open-pipeline" className="bg-white rounded-xl p-3.5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
         <div className="flex items-center justify-between text-slate-500 mb-1">
           <span className="text-xs font-semibold uppercase tracking-wider">Pipeline Aberto</span>
           <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
@@ -79,7 +79,7 @@ export const DealsMetrics: React.FC<DealsMetricsProps> = ({
       </div>
 
       {/* 2. Negócios Abertos */}
-      <div className="bg-white rounded-xl p-3.5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+      <div data-testid="deals-kpi-open-count" className="bg-white rounded-xl p-3.5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
         <div className="flex items-center justify-between text-slate-500 mb-1">
           <span className="text-xs font-semibold uppercase tracking-wider">Abertos</span>
           <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600">
@@ -93,7 +93,7 @@ export const DealsMetrics: React.FC<DealsMetricsProps> = ({
       </div>
 
       {/* 3. Forecast Ponderado */}
-      <div className="bg-white rounded-xl p-3.5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+      <div data-testid="deals-kpi-forecast" className="bg-white rounded-xl p-3.5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
         <div className="flex items-center justify-between text-slate-500 mb-1">
           <span className="text-xs font-semibold uppercase tracking-wider">Forecast Ponderado</span>
           <div className="p-1.5 rounded-lg bg-purple-50 text-purple-600">
@@ -109,7 +109,7 @@ export const DealsMetrics: React.FC<DealsMetricsProps> = ({
       </div>
 
       {/* 4. Ganhos */}
-      <div className="bg-white rounded-xl p-3.5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+      <div data-testid="deals-kpi-won" className="bg-white rounded-xl p-3.5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
         <div className="flex items-center justify-between text-slate-500 mb-1">
           <span className="text-xs font-semibold uppercase tracking-wider">Ganhos</span>
           <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
