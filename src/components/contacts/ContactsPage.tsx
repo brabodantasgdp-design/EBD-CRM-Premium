@@ -3,6 +3,7 @@ import { ContactItem, ContactSummaryMetrics, ContactLifecycleStatus, PeriodOptio
 import { MOCK_CONTACT_TAGS, MOCK_OWNERS } from "../../data/mockContactsData";
 import { useCRM } from "../../context/CRMContext";
 import { getLocalDateString } from "../../utils/formatters";
+import { hasSupabaseConfiguration } from "../../lib/supabase/env";
 import { ContactsHeader } from "./ContactsHeader";
 import { ContactMetrics } from "./ContactMetrics";
 import { ContactFilters, ContactFilterState } from "./ContactFilters";
@@ -164,6 +165,7 @@ export const ContactsPage: React.FC<ContactsPageProps> = ({
 
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const commercialPersistence = hasSupabaseConfiguration();
 
   // Available unique lists for filter dropdowns
   const availableCompanies = useMemo(() => {
@@ -371,7 +373,14 @@ export const ContactsPage: React.FC<ContactsPageProps> = ({
       {/* Header */}
       <ContactsHeader
         onOpenNewContact={() => setFormModalState({ open: true, contact: null })}
-        onOpenImport={() => setImportModalOpen(true)}
+        onOpenImport={() => {
+          if (commercialPersistence) {
+            onShowToast("Importação em lote ainda não está habilitada para persistência real.");
+            return;
+          }
+          setImportModalOpen(true);
+        }}
+        importDisabled={commercialPersistence}
         onOpenExport={() => setExportMenuOpen(true)}
         selectedCount={selectedIds.length}
       />
@@ -564,6 +573,11 @@ export const ContactsPage: React.FC<ContactsPageProps> = ({
         <ContactImportModal
           onClose={() => setImportModalOpen(false)}
           onImportSuccess={(newContacts) => {
+            if (commercialPersistence) {
+              onShowToast("Importação em lote ainda não está habilitada para persistência real.");
+              setImportModalOpen(false);
+              return;
+            }
             newContacts.forEach((nc) => addContact(nc));
           }}
           onShowToast={onShowToast}

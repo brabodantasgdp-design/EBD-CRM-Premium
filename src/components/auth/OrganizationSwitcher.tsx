@@ -3,18 +3,25 @@
 import { useEffect, useState } from "react";
 import { Building, ChevronDown } from "lucide-react";
 import { MOCK_COMPANIES } from "../../data/mockCrmData";
+import { hasSupabaseConfiguration } from "../../lib/supabase/env";
 
 type Organization = { id: string; name: string; plan?: string };
 
 export function OrganizationSwitcher() {
   const fallback = MOCK_COMPANIES.map((company) => ({ id: company.id, name: company.name, plan: company.plan }));
-  const [organizations, setOrganizations] = useState<Organization[]>(fallback);
+  const commercialPersistence = hasSupabaseConfiguration();
+  const [organizations, setOrganizations] = useState<Organization[]>(commercialPersistence ? [] : fallback);
   const [configured, setConfigured] = useState(false);
-  const [activeId, setActiveId] = useState(fallback[0]?.id);
+  const [activeId, setActiveId] = useState<string | undefined>(commercialPersistence ? undefined : fallback[0]?.id);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    fetch("/api/organizations").then(async (response) => ({ response, payload: await response.json() })).then(({ response, payload }) => {
+    fetch("/api/organizations").then(async (response) => {
+      const contentType = response.headers.get("content-type") ?? "";
+      const payload = contentType.includes("application/json") ? await response.json() : null;
+      return { response, payload };
+    }).then(({ response, payload }) => {
+      if (!payload) return;
       if (!payload.configured) return;
       setConfigured(true);
       if (response.ok) {
@@ -22,7 +29,7 @@ export function OrganizationSwitcher() {
         setOrganizations(rows);
         setActiveId(rows[0]?.id);
       }
-    }).catch(() => undefined);
+    }).catch(() => setOrganizations([]));
   }, []);
 
   async function select(id: string) {

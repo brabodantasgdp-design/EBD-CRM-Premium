@@ -35,6 +35,18 @@ export type Database = {
         Update: { id?: string; organization_id?: string; actor_user_id?: string; action?: string; entity_type?: string; entity_id?: string | null; metadata?: Json; created_at?: string };
         Relationships: [];
       };
+      companies: {
+        Row: { id: string; organization_id: string; name: string; legal_name: string | null; cnpj: string | null; domain: string | null; phone: string | null; email: string | null; segment: string; size: string; employee_count: string | null; estimated_revenue: string | null; status: string; owner_id: string | null; source: string | null; tags: string[]; address: Json | null; custom_fields: Json | null; created_by: string; archived_at: string | null; created_at: string; updated_at: string };
+        Insert: { id?: string; organization_id: string; name: string; legal_name?: string | null; cnpj?: string | null; domain?: string | null; phone?: string | null; email?: string | null; segment?: string; size?: string; employee_count?: string | null; estimated_revenue?: string | null; status?: string; owner_id?: string | null; source?: string | null; tags?: string[]; address?: Json | null; custom_fields?: Json | null; created_by: string; archived_at?: string | null; created_at?: string; updated_at?: string };
+        Update: { id?: string; organization_id?: string; name?: string; legal_name?: string | null; cnpj?: string | null; domain?: string | null; phone?: string | null; email?: string | null; segment?: string; size?: string; employee_count?: string | null; estimated_revenue?: string | null; status?: string; owner_id?: string | null; source?: string | null; tags?: string[]; address?: Json | null; custom_fields?: Json | null; created_by?: string; archived_at?: string | null; created_at?: string; updated_at?: string };
+        Relationships: [{ foreignKeyName: "companies_organization_id_fkey"; columns: ["organization_id"]; isOneToOne: false; referencedRelation: "organizations"; referencedColumns: ["id"] }];
+      };
+      contacts: {
+        Row: { id: string; organization_id: string; first_name: string; last_name: string | null; full_name: string; email: string | null; phone: string | null; mobile_phone: string | null; job_title: string | null; company_id: string | null; owner_id: string | null; lifecycle_status: string; source: string | null; tags: string[]; custom_fields: Json | null; created_by: string; archived_at: string | null; created_at: string; updated_at: string };
+        Insert: { id?: string; organization_id: string; first_name?: string; last_name?: string | null; full_name: string; email?: string | null; phone?: string | null; mobile_phone?: string | null; job_title?: string | null; company_id?: string | null; owner_id?: string | null; lifecycle_status?: string; source?: string | null; tags?: string[]; custom_fields?: Json | null; created_by: string; archived_at?: string | null; created_at?: string; updated_at?: string };
+        Update: { id?: string; organization_id?: string; first_name?: string; last_name?: string | null; full_name?: string; email?: string | null; phone?: string | null; mobile_phone?: string | null; job_title?: string | null; company_id?: string | null; owner_id?: string | null; lifecycle_status?: string; source?: string | null; tags?: string[]; custom_fields?: Json | null; created_by?: string; archived_at?: string | null; created_at?: string; updated_at?: string };
+        Relationships: [{ foreignKeyName: "contacts_company_id_fkey"; columns: ["company_id"]; isOneToOne: false; referencedRelation: "companies"; referencedColumns: ["id"] }, { foreignKeyName: "contacts_organization_id_fkey"; columns: ["organization_id"]; isOneToOne: false; referencedRelation: "organizations"; referencedColumns: ["id"] }];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -48,6 +60,8 @@ export type Database = {
       set_member_status: { Args: { target_member: string; target_status: string }; Returns: boolean };
       revoke_organization_invite: { Args: { target_invite: string }; Returns: boolean };
       accept_organization_invite: { Args: { target_hash: string }; Returns: string };
+      can_write_commercial: { Args: { target_organization: string; target_user?: string }; Returns: boolean };
+      can_view_profile: { Args: { target_user: string; viewer?: string }; Returns: boolean };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

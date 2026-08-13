@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   ContactItem,
   CompanyItem,
@@ -19,6 +19,7 @@ import { MOCK_TASKS_SEED } from "../data/mockTasksData";
 import { MOCK_ACTIVITIES_SEED } from "../data/mockActivitiesData";
 import { MOCK_LEADS } from "../data/mockLeadsData";
 import { getLocalDateString } from "../utils/formatters";
+import { hasSupabaseConfiguration } from "../lib/supabase/env";
 
 export const INITIAL_DEALS: DealItem[] = [
   {
@@ -420,11 +421,12 @@ const CRMContext = createContext<CRMContextType | undefined>(undefined);
 export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const commercialPersistence = hasSupabaseConfiguration();
   const [contacts, setContacts] = useState<ContactItem[]>(
-    MOCK_CONTACTS.map(({ tasks: _tasks, activities: _activities, ...contact }) => contact)
+    commercialPersistence ? [] : MOCK_CONTACTS.map(({ tasks: _tasks, activities: _activities, ...contact }) => contact)
   );
   const [companies, setCompanies] = useState<CompanyItem[]>(
-    MOCK_COMPANIES_DATA.map(({ tasks: _tasks, activities: _activities, ...company }) => company)
+    commercialPersistence ? [] : MOCK_COMPANIES_DATA.map(({ tasks: _tasks, activities: _activities, ...company }) => company)
   );
   const [deals, setDeals] = useState<DealItem[]>(
     INITIAL_DEALS.map(({ tasks: _tasks, activities: _activities, ...deal }) => deal)
@@ -434,6 +436,54 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
   );
   const [tasks, setTasks] = useState<TaskItem[]>(MOCK_TASKS_SEED);
   const [activities, setActivities] = useState<ActivityItem[]>(MOCK_ACTIVITIES_SEED);
+
+  useEffect(() => {
+    if (!commercialPersistence) return;
+    let cancelled = false;
+    const loadCommercialData = async () => {
+      const [companiesResponse, contactsResponse] = await Promise.all([
+        fetch("/api/commercial/companies", { cache: "no-store" }),
+        fetch("/api/commercial/contacts", { cache: "no-store" }),
+      ]);
+      const companiesJson = companiesResponse.headers.get("content-type")?.includes("application/json") ?? false;
+      const contactsJson = contactsResponse.headers.get("content-type")?.includes("application/json") ?? false;
+      if (!companiesResponse.ok || !contactsResponse.ok || !companiesJson || !contactsJson || cancelled) return;
+      const companiesPayload = await companiesResponse.json() as { companies?: CompanyItem[] };
+      const contactsPayload = await contactsResponse.json() as { contacts?: ContactItem[] };
+      if (!cancelled) {
+        setCompanies(companiesPayload.companies ?? []);
+        setContacts(contactsPayload.contacts ?? []);
+      }
+    };
+    void loadCommercialData();
+    return () => { cancelled = true; };
+  }, [commercialPersistence]);
+
+  const persistContactUpdate = (id: string, updates: Partial<ContactItem>) => {
+    if (!commercialPersistence) return;
+    void fetch(`/api/commercial/contacts/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    }).then(async (response) => {
+      if (!response.ok) throw new Error("contact persistence failed");
+      const payload = await response.json() as { contact?: ContactItem };
+      if (payload.contact) setContacts((prev) => prev.map((item) => item.id === id ? payload.contact as ContactItem : item));
+    }).catch(() => undefined);
+  };
+
+  const persistCompanyUpdate = (id: string, updates: Partial<CompanyItem>) => {
+    if (!commercialPersistence) return;
+    void fetch(`/api/commercial/companies/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    }).then(async (response) => {
+      if (!response.ok) throw new Error("company persistence failed");
+      const payload = await response.json() as { company?: CompanyItem };
+      if (payload.company) setCompanies((prev) => prev.map((item) => item.id === id ? payload.company as CompanyItem : item));
+    }).catch(() => undefined);
+  };
 
   // --- LEAD HANDLERS ---
   const addLead = (leadData: Partial<LeadItem>): LeadItem => {
@@ -531,6 +581,17 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     setContacts((prev) => [newContact, ...prev]);
+    if (commercialPersistence) {
+      void fetch("/api/commercial/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(contactData),
+      }).then(async (response) => {
+        if (!response.ok) throw new Error("contact creation failed");
+        const payload = await response.json() as { contact?: ContactItem };
+        if (payload.contact) setContacts((prev) => [payload.contact as ContactItem, ...prev.filter((item) => item.id !== newContact.id)]);
+      }).catch(() => setContacts((prev) => prev.filter((item) => item.id !== newContact.id)));
+    }
     return newContact;
   };
 
@@ -550,14 +611,17 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         };
       })
     );
+    persistContactUpdate(id, updates);
   };
 
   const archiveContact = (id: string) => {
     setContacts((prev) => prev.filter((c) => c.id !== id));
+    persistContactUpdate(id, { archivedAt: new Date().toISOString() });
   };
 
   const bulkArchiveContacts = (ids: string[]) => {
     setContacts((prev) => prev.filter((c) => !ids.includes(c.id)));
+    ids.forEach((id) => persistContactUpdate(id, { archivedAt: new Date().toISOString() }));
   };
 
   const bulkUpdateContactsOwner = (
@@ -573,6 +637,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
           : c
       )
     );
+    ids.forEach((id) => persistContactUpdate(id, { ownerId, ownerName, ownerAvatar }));
   };
 
   const bulkUpdateContactsStatus = (
@@ -584,6 +649,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         ids.includes(c.id) ? { ...c, lifecycleStatus: status, updatedAt: "agora mesmo" } : c
       )
     );
+    ids.forEach((id) => persistContactUpdate(id, { lifecycleStatus: status }));
   };
 
   const bulkAddContactTags = (ids: string[], tag: string) => {
@@ -594,6 +660,10 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
           : c
       )
     );
+    ids.forEach((id) => {
+      const contact = contacts.find((item) => item.id === id);
+      if (contact && !contact.tags.includes(tag)) persistContactUpdate(id, { tags: [...contact.tags, tag] });
+    });
   };
 
   const bulkRemoveContactTags = (ids: string[], tag: string) => {
@@ -604,6 +674,10 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
           : c
       )
     );
+    ids.forEach((id) => {
+      const contact = contacts.find((item) => item.id === id);
+      if (contact) persistContactUpdate(id, { tags: contact.tags.filter((item) => item !== tag) });
+    });
   };
 
   // --- COMPANIES HANDLERS ---
@@ -639,6 +713,17 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     setCompanies((prev) => [newCompany, ...prev]);
+    if (commercialPersistence) {
+      void fetch("/api/commercial/companies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(companyData),
+      }).then(async (response) => {
+        if (!response.ok) throw new Error("company creation failed");
+        const payload = await response.json() as { company?: CompanyItem };
+        if (payload.company) setCompanies((prev) => [payload.company as CompanyItem, ...prev.filter((item) => item.id !== newCompany.id)]);
+      }).catch(() => setCompanies((prev) => prev.filter((item) => item.id !== newCompany.id)));
+    }
     return newCompany;
   };
 
@@ -648,14 +733,17 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         c.id === id ? { ...c, ...updates, updatedAt: "agora mesmo" } : c
       )
     );
+    persistCompanyUpdate(id, updates);
   };
 
   const archiveCompany = (id: string) => {
     setCompanies((prev) => prev.filter((c) => c.id !== id));
+    persistCompanyUpdate(id, { archivedAt: new Date().toISOString() });
   };
 
   const bulkArchiveCompanies = (ids: string[]) => {
     setCompanies((prev) => prev.filter((c) => !ids.includes(c.id)));
+    ids.forEach((id) => persistCompanyUpdate(id, { archivedAt: new Date().toISOString() }));
   };
 
   const bulkUpdateCompaniesOwner = (
@@ -671,6 +759,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
           : c
       )
     );
+    ids.forEach((id) => persistCompanyUpdate(id, { ownerId, ownerName, ownerAvatar }));
   };
 
   const bulkUpdateCompaniesStatus = (ids: string[], status: CompanyStatus) => {
@@ -679,6 +768,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         ids.includes(c.id) ? { ...c, status, updatedAt: "agora mesmo" } : c
       )
     );
+    ids.forEach((id) => persistCompanyUpdate(id, { status }));
   };
 
   const bulkAddCompanyTags = (ids: string[], tag: string) => {
@@ -689,6 +779,10 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
           : c
       )
     );
+    ids.forEach((id) => {
+      const company = companies.find((item) => item.id === id);
+      if (company && !company.tags.includes(tag)) persistCompanyUpdate(id, { tags: [...company.tags, tag] });
+    });
   };
 
   const bulkRemoveCompanyTags = (ids: string[], tag: string) => {
@@ -699,6 +793,10 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
           : c
       )
     );
+    ids.forEach((id) => {
+      const company = companies.find((item) => item.id === id);
+      if (company) persistCompanyUpdate(id, { tags: company.tags.filter((item) => item !== tag) });
+    });
   };
 
   // --- DEALS HANDLERS ---

@@ -15,6 +15,7 @@ import { calculateCompanySummaryMetrics } from "../../data/mockCompaniesData";
 import { MOCK_CONTACT_TAGS, MOCK_OWNERS } from "../../data/mockContactsData";
 import { useCRM } from "../../context/CRMContext";
 import { getLocalDateString } from "../../utils/formatters";
+import { hasSupabaseConfiguration } from "../../lib/supabase/env";
 import { CompanyMetrics } from "./CompanyMetrics";
 import { CompanyFilters, CompanyFilterState } from "./CompanyFilters";
 import { CompanyTable } from "./CompanyTable";
@@ -95,6 +96,7 @@ export const CompaniesPage: React.FC<CompaniesPageProps> = ({
   const [contactModalCompany, setContactModalCompany] = useState<CompanyItem | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const commercialPersistence = hasSupabaseConfiguration();
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -367,8 +369,10 @@ export const CompaniesPage: React.FC<CompaniesPageProps> = ({
 
           {/* Import Button */}
           <button
-            onClick={() => setShowImportModal(true)}
+            onClick={() => commercialPersistence ? showToast("Importação CSV ainda não está habilitada para persistência real.") : setShowImportModal(true)}
+            disabled={commercialPersistence}
             className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold rounded-xl text-xs flex items-center gap-2 transition-colors"
+            title={commercialPersistence ? "Importação em lote será habilitada em uma fase específica" : "Importar empresas via CSV"}
           >
             <Upload className="h-4 w-4 text-slate-600" />
             <span className="hidden sm:inline">Importar</span>
