@@ -17,6 +17,7 @@ import { MarkLostModal } from "./MarkLostModal";
 import { ReopenDealModal } from "./ReopenDealModal";
 import { PipelineConfigPreviewModal } from "./PipelineConfigPreviewModal";
 import { DealDetailDrawer } from "./DealDetailDrawer";
+import { hasSupabaseConfiguration } from "../../lib/supabase/env";
 
 interface DealsPageProps {
   onShowToast?: (message: string) => void;
@@ -35,6 +36,7 @@ export const DealsPage: React.FC<DealsPageProps> = ({
   currentPeriod = "este_mes",
 }) => {
   const { deals, companies, contacts, pipelines, addDeal, updateDeal, moveDealStage, markDealWon, markDealLost, reopenDeal, archiveDeal, bulkArchiveDeals } = useCRM();
+  const commercialPersistence = hasSupabaseConfiguration();
   const realPipelines = useMemo<PipelineConfig[]>(() => pipelines.map((pipeline) => ({ id: pipeline.id, name: pipeline.name, description: pipeline.description || "", isDefault: pipeline.isDefault, stages: pipeline.stages.map((stage) => ({ id: stage.id, pipelineId: stage.pipelineId, name: stage.name, order: stage.position + 1, probability: stage.probability, color: stage.color || "slate" })) })), [pipelines]);
 
   // Active Pipeline & View Mode
@@ -291,6 +293,10 @@ export const DealsPage: React.FC<DealsPageProps> = ({
         viewMode={viewMode}
         onViewModeChange={(mode) => setViewMode(mode)}
         onOpenCreateModal={() => {
+          if (commercialPersistence && !realPipelines.length) {
+            toast("Aguarde o carregamento dos pipelines reais.");
+            return;
+          }
           setDealToEdit(null);
           setInitialStageForCreate(null);
           setIsFormModalOpen(true);
@@ -371,7 +377,7 @@ export const DealsPage: React.FC<DealsPageProps> = ({
         availableCompanies={companies}
         availableContacts={contacts}
         availableOwners={AVAILABLE_OWNERS}
-        availablePipelines={realPipelines.length ? realPipelines : MOCK_PIPELINES}
+        availablePipelines={commercialPersistence ? realPipelines : MOCK_PIPELINES}
         onSave={handleSaveDeal}
       />
 
@@ -388,7 +394,7 @@ export const DealsPage: React.FC<DealsPageProps> = ({
         isOpen={Boolean(reopenDealItem)}
         onClose={() => setReopenDealItem(null)}
         deal={reopenDealItem}
-        availablePipelines={realPipelines.length ? realPipelines : MOCK_PIPELINES}
+        availablePipelines={commercialPersistence ? realPipelines : MOCK_PIPELINES}
         onConfirm={handleConfirmReopen}
       />
 
@@ -396,7 +402,7 @@ export const DealsPage: React.FC<DealsPageProps> = ({
       <PipelineConfigPreviewModal
         isOpen={isPipelineConfigOpen}
         onClose={() => setIsPipelineConfigOpen(false)}
-        pipelines={realPipelines.length ? realPipelines : MOCK_PIPELINES}
+        pipelines={commercialPersistence ? realPipelines : MOCK_PIPELINES}
       />
 
       {/* 360° Detail Drawer */}
