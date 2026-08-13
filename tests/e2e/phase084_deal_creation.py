@@ -24,7 +24,7 @@ def first_option(select):
 
 def test_create_deal_ui_persists_real_record():
     env = load_env()
-    report = {"login_status": None, "login_error": None, "post_status": None, "post_error": None, "created_visible": False, "refresh_visible": False, "errors": []}
+    report = {"login_status": None, "login_error": None, "post_status": None, "post_error": None, "post_payload": None, "created_visible": False, "refresh_visible": False, "errors": []}
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True, args=["--no-sandbox"])
         context = browser.new_context(
@@ -38,6 +38,8 @@ def test_create_deal_ui_persists_real_record():
                 report["login_status"] = response.status
             if response.request.method == "POST" and "/api/commercial/deals" in response.url:
                 report["post_status"] = response.status
+                payload = response.request.post_data_json or {}
+                report["post_payload"] = {key: payload.get(key) for key in ["name", "companyId", "contactId", "pipelineId", "stageId", "ownerId", "value", "expectedCloseDate", "probability"]}
                 if response.status >= 400:
                     report["post_error"] = response.text()[:300]
         page.on("response", capture_response)
