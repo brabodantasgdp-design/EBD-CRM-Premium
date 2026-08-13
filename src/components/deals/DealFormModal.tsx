@@ -265,7 +265,7 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
                   type="number"
                   required
                   min="0"
-                  step="100"
+                  step="0.01"
                   placeholder="0,00"
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
