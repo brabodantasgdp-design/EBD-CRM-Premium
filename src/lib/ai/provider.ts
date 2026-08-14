@@ -1,4 +1,5 @@
 export type AIProviderName = "gemini" | "groq" | "mock";
+export type AIProviderConfig = { provider: "gemini" | "groq"; model: string; apiKey: string };
 export type AIRequest = { system: string; user: string; timeoutMs?: number };
 export type AIResponse = { text: string; inputTokens?: number; outputTokens?: number; provider: AIProviderName; model: string };
 
@@ -6,14 +7,16 @@ export interface AIProvider { name: AIProviderName; model: string; generateText(
 
 export function aiProviderConfigured() { const provider = process.env.AI_PROVIDER || "gemini"; return provider === "groq" ? Boolean(process.env.GROQ_API_KEY) : provider === "gemini" ? Boolean(process.env.GEMINI_API_KEY) : provider === "mock"; }
 
-export async function getAIProvider(): Promise<AIProvider> {
-  const provider = process.env.AI_PROVIDER || "gemini";
+export async function getAIProvider(config?: AIProviderConfig): Promise<AIProvider> {
+  const provider = config?.provider || process.env.AI_PROVIDER || "gemini";
   if (provider === "mock") return new MockProvider();
-  if (provider === "gemini" && process.env.GEMINI_API_KEY) {
+  const apiKey = config?.apiKey || (provider === "gemini" ? process.env.GEMINI_API_KEY : process.env.GROQ_API_KEY);
+  const model = config?.model || process.env.AI_MODEL || (provider === "groq" ? "llama-3.3-70b-versatile" : "gemini-2.0-flash");
+  if (provider === "gemini" && apiKey) {
     const { GoogleGenAI } = await import("@google/genai");
-    return new GeminiProvider(new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) as unknown as GeminiClient, process.env.AI_MODEL || "gemini-2.0-flash");
+    return new GeminiProvider(new GoogleGenAI({ apiKey }) as unknown as GeminiClient, model);
   }
-  if (provider === "groq" && process.env.GROQ_API_KEY) return new GroqProvider(process.env.GROQ_API_KEY, process.env.AI_MODEL || "llama-3.3-70b-versatile");
+  if (provider === "groq" && apiKey) return new GroqProvider(apiKey, model);
   throw new Error("ai_provider_not_configured");
 }
 

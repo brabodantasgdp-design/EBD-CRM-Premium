@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Building2, Check, Copy, MailPlus, ShieldCheck, UserMinus, UserRoundCheck } from "lucide-react";
+import { AISettingsPanel } from "./AISettingsPanel";
 
 type Member = { id: string; user_id: string; role: string; status: string; created_at: string; profiles?: { full_name?: string } | null };
 type Invite = { id: string; email: string; role: string; status: string; expires_at: string };
@@ -49,6 +50,7 @@ export function SettingsPage() {
 
   if (!data) return <main className="p-6"><p className="text-sm text-slate-500">{error || "Carregando configurações..."}</p></main>;
   return <main className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+    <AISettingsPanel />
     <header><p className="text-xs font-bold uppercase tracking-wider text-indigo-600">Administração SaaS</p><h1 className="mt-1 text-2xl font-black text-slate-900">Configurações</h1><p className="mt-1 text-sm text-slate-500">Gerencie a empresa, a equipe e as permissões da organização ativa.</p></header>
     <nav className="flex gap-2 overflow-x-auto border-b border-slate-200 pb-2">{[["empresa", "Minha Empresa", Building2], ["equipe", "Equipe", MailPlus], ["papeis", "Papéis e Permissões", ShieldCheck]].map(([id, label, Icon]) => <button key={id as string} onClick={() => setTab(id as string)} className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold ${tab === id ? "bg-indigo-600 text-white" : "text-slate-500 hover:bg-slate-100"}`}><Icon className="h-4 w-4" />{label as string}</button>)}</nav>
     {message && <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700"><Check className="mr-2 inline h-4 w-4" />{message}</p>}

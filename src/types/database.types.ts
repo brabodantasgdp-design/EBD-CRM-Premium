@@ -906,6 +906,56 @@ export type Database = {
           },
         ]
       }
+      organization_ai_settings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          encrypted_api_key: string
+          id: string
+          key_last_four: string | null
+          model: string
+          organization_id: string
+          provider: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          encrypted_api_key: string
+          id?: string
+          key_last_four?: string | null
+          model: string
+          organization_id: string
+          provider: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          encrypted_api_key?: string
+          id?: string
+          key_last_four?: string | null
+          model?: string
+          organization_id?: string
+          provider?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_ai_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_invites: {
         Row: {
           accepted_at: string | null
