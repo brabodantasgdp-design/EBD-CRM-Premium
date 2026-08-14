@@ -14,6 +14,7 @@ import {
   FileText,
   BarChart3,
   Bot,
+  Zap,
   Settings,
   X,
 } from "lucide-react";
@@ -45,6 +46,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
     { id: "produtos", label: "Produtos", icon: Package },
     { id: "propostas", label: "Propostas", icon: FileText },
     { id: "relatorios", label: "Relatórios", icon: BarChart3 },
+    { id: "automacoes", label: "Automações", icon: Zap },
     { id: "copilot", label: "Copilot IA", icon: Bot },
     { id: "configuracoes", label: "Configurações", icon: Settings },
   ];

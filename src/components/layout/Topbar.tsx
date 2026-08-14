@@ -18,7 +18,6 @@ import {
   X,
 } from "lucide-react";
 import { PeriodOption, UIStateMode } from "../../types/crm";
-import { MOCK_USER_PROFILE } from "../../data/mockCrmData";
 
 interface TopbarProps {
   currentPeriod: PeriodOption;
@@ -139,8 +138,6 @@ export const Topbar: React.FC<TopbarProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
               placeholder="Buscar empresas, contatos, negócios ou tarefas (Press /)"
               className="w-full pl-10 pr-12 py-2 text-xs bg-slate-100/80 border border-slate-200/80 rounded-xl focus:outline-none focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-slate-800 placeholder-slate-400 transition-all"
             />
@@ -152,7 +149,7 @@ export const Topbar: React.FC<TopbarProps> = ({
           {/* Search Dropdown Results */}
           {/* Busca global demonstrativa com dados simulados */}
           {searchFocused && searchQuery.length > 0 && (
-            <div className="absolute left-0 right-0 top-12 bg-white border border-slate-200 rounded-xl shadow-xl p-2 z-50 text-left">
+            <div className="hidden absolute left-0 right-0 top-12 bg-white border border-slate-200 rounded-xl shadow-xl p-2 z-50 text-left">
               <p className="px-2 py-1 text-[10px] font-bold uppercase text-slate-400 tracking-wider">
                 Resultados Demonstrativos
               </p>
@@ -188,7 +185,7 @@ export const Topbar: React.FC<TopbarProps> = ({
               NOTA: O UX Tester é uma ferramenta de desenvolvimento/demonstração.
               Em ambiente de produção, este componente deve ser desativado ou protegido por feature flag.
           */}
-          <div className="relative">
+          <div className="relative hidden">
             <button
               onClick={() => setDemoStateMenuOpen(!demoStateMenuOpen)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100/80 text-amber-900 text-xs font-semibold border border-amber-200 transition-colors"
@@ -398,11 +395,9 @@ export const Topbar: React.FC<TopbarProps> = ({
 
           {/* Profile Badge */}
           <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-200">
-            <img
-              src={MOCK_USER_PROFILE.avatar}
-              alt={MOCK_USER_PROFILE.name}
-              className="h-8 w-8 rounded-full object-cover ring-2 ring-indigo-500/20"
-            />
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700 ring-2 ring-indigo-500/20" aria-label="Conta autenticada">
+              NX
+            </div>
           </div>
         </div>
       </div>
