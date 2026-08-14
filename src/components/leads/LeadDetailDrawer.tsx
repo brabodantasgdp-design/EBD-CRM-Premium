@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { CopilotEntityButton } from "../copilot/CopilotEntityButton";
 import {
   X,
   Edit3,
@@ -166,6 +167,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
 
             {/* Quick Action Toolbar */}
             <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t border-slate-200/80">
+              <CopilotEntityButton entityType="lead" entityId={lead.id} />
               <button
                 onClick={() => onOpenEdit(lead)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors shadow-2xs"
