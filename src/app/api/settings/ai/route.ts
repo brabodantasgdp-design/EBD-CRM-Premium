@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { getCurrentOrganization, requireUser } from "../../../../lib/supabase/auth";
 import { createSupabaseServiceRoleClient } from "../../../../lib/supabase/service";
 import { encryptAICredential } from "../../../../lib/ai/encryption";
-import { getAIProvider, type AIProviderConfig } from "../../../../lib/ai/provider";
+import { AIProviderRequestError, getAIProvider, type AIProviderConfig } from "../../../../lib/ai/provider";
 import { getSafeAISetting, isSupportedAIProvider } from "../../../../lib/ai/byok";
 
 type Body = { action?: "test" | "save" | "disable"; provider?: unknown; model?: unknown; apiKey?: unknown };
+type FailureCode = "INVALID_INPUT" | "PROVIDER_CONNECTION_FAILED" | "ENCRYPTION_FAILED" | "PERSISTENCE_FAILED" | "AI_CONFIGURATION_ERROR";
 
 async function authorized() {
   const { supabase, user } = await requireUser();
@@ -23,31 +24,39 @@ export async function GET() {
     const setting = await getSafeAISetting(auth.supabase, auth.organization.id);
     if (!setting) return NextResponse.json({ configured: false, error: "Configuração de servidor indisponível" }, { status: 503 });
     return NextResponse.json(setting);
-  }
-  catch { return NextResponse.json({ configured: false, error: "Não foi possível carregar a configuração de IA" }, { status: 503 }); }
+  } catch { return NextResponse.json({ configured: false, error: "Não foi possível carregar a configuração de IA" }, { status: 503 }); }
 }
 
 export async function POST(request: Request) {
+  const requestId = crypto.randomUUID();
   const auth = await authorized();
-  if (!auth) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+  if (!auth) return NextResponse.json({ code: "AI_CONFIGURATION_ERROR", error: "Acesso negado", requestId }, { status: 403 });
   const body = await request.json().catch(() => null) as Body | null;
+  const apiKeyPresent = typeof body?.apiKey === "string" && body.apiKey.length > 0;
+  const logFailure = (failureStage: string, errorClass: string, providerStatusCode?: number | null) => console.warn("[ai-settings]", JSON.stringify({ requestId, organizationId: auth.organization.id, userId: auth.user.id, provider: isSupportedAIProvider(body?.provider) ? body.provider : "unknown", model: typeof body?.model === "string" ? body.model.trim() : "unknown", apiKeyPresent, apiKeyLength: typeof body?.apiKey === "string" ? body.apiKey.length : 0, failureStage, providerStatusCode: providerStatusCode ?? undefined, errorClass }));
+  const failure = (code: FailureCode, message: string, status: number, failureStage: string, errorClass: string, providerStatusCode?: number | null) => { logFailure(failureStage, errorClass, providerStatusCode); return NextResponse.json({ code, message, requestId, ...(providerStatusCode ? { providerStatusCode } : {}) }, { status }); };
   if (body?.action === "disable") {
     const { error } = await auth.supabase.from("organization_ai_settings").update({ enabled: false, updated_by: auth.user.id }).eq("organization_id", auth.organization.id);
-    return error ? NextResponse.json({ error: "Não foi possível desativar o provider" }, { status: 400 }) : NextResponse.json({ success: true, enabled: false });
+    return error ? failure("PERSISTENCE_FAILED", "Não foi possível desativar o provider.", 400, "disable", "supabase_update_failed") : NextResponse.json({ success: true, enabled: false, requestId });
   }
-  if (!isSupportedAIProvider(body?.provider) || typeof body?.model !== "string" || body.model.trim().length > 160 || typeof body.apiKey !== "string" || body.apiKey.length < 8) return NextResponse.json({ error: "Provider, modelo ou chave inválidos" }, { status: 400 });
+  if (!isSupportedAIProvider(body?.provider) || typeof body?.model !== "string" || body.model.trim().length === 0 || body.model.trim().length > 160 || typeof body.apiKey !== "string" || body.apiKey.length < 8) return failure("INVALID_INPUT", "Provider, modelo ou chave inválidos.", 400, "validation", "invalid_input");
   const config: AIProviderConfig = { provider: body.provider, model: body.model.trim(), apiKey: body.apiKey };
+  let provider;
   try {
-    const provider = await getAIProvider(config);
-    await provider.generateText({ system: "Return only JSON with success true.", user: "Return a minimal connection test.", timeoutMs: 10000 });
-    if (body.action === "test") return NextResponse.json({ success: true, provider: provider.name, model: provider.model, message: "Conexão testada com sucesso." });
-    const { error } = await auth.supabase.from("organization_ai_settings").upsert({ organization_id: auth.organization.id, provider: config.provider, model: config.model, encrypted_api_key: encryptAICredential(config.apiKey), key_last_four: config.apiKey.slice(-4), enabled: true, created_by: auth.user.id, updated_by: auth.user.id }, { onConflict: "organization_id" });
-    if (error) return NextResponse.json({ error: "Não foi possível salvar a configuração" }, { status: 400 });
-    return NextResponse.json({ success: true, provider: provider.name, model: provider.model, configured: true, keyLastFour: config.apiKey.slice(-4) });
+    provider = await getAIProvider(config);
+    await provider.generateText({ system: "Return a short connection confirmation.", user: "Reply with OK.", timeoutMs: 10000, responseFormat: "text" });
   } catch (error) {
-    const message = error instanceof Error && error.message.startsWith("ai_encryption_key") ? "A chave mestre de criptografia não está configurada no servidor" : "Não foi possível testar a conexão com o provider";
-    return NextResponse.json({ success: false, error: message }, { status: 400 });
+    const providerError = error instanceof AIProviderRequestError ? error : null;
+    const providerStatusCode = providerError?.statusCode ?? null;
+    const message = providerStatusCode === 401 || providerStatusCode === 403 ? "A credencial do provider foi rejeitada." : providerStatusCode === 400 ? "O provider rejeitou o modelo ou payload." : providerStatusCode === 404 ? "O modelo ou endpoint do provider não foi encontrado." : providerStatusCode === 429 ? "O provider informou limite de uso ou quota." : providerStatusCode && providerStatusCode >= 500 ? "O provider está indisponível no momento." : "Não foi possível conectar ao provider.";
+    return failure("PROVIDER_CONNECTION_FAILED", message, providerStatusCode === 429 ? 429 : 400, "provider_connection", providerError?.errorClass ?? "ai_configuration_error", providerStatusCode);
   }
+  if (body.action === "test") return NextResponse.json({ success: true, provider: provider.name, model: provider.model, message: "Conexão testada com sucesso.", requestId });
+  let encryptedApiKey: string;
+  try { encryptedApiKey = encryptAICredential(config.apiKey); } catch (error) { return failure("ENCRYPTION_FAILED", "Não foi possível proteger a credencial no servidor.", 500, "encryption", error instanceof Error ? error.name : "encryption_error"); }
+  const { error } = await auth.supabase.from("organization_ai_settings").upsert({ organization_id: auth.organization.id, provider: config.provider, model: config.model, encrypted_api_key: encryptedApiKey, key_last_four: config.apiKey.slice(-4), enabled: true, created_by: auth.user.id, updated_by: auth.user.id }, { onConflict: "organization_id" });
+  if (error) return failure("PERSISTENCE_FAILED", "Não foi possível salvar a configuração.", 400, "upsert", "supabase_upsert_failed");
+  return NextResponse.json({ success: true, provider: provider.name, model: provider.model, configured: true, keyLastFour: config.apiKey.slice(-4), requestId });
 }
 
 export async function DELETE() {

@@ -1,7 +1,14 @@
 export type AIProviderName = "gemini" | "groq" | "mock";
 export type AIProviderConfig = { provider: "gemini" | "groq"; model: string; apiKey: string };
-export type AIRequest = { system: string; user: string; timeoutMs?: number };
+export type AIRequest = { system: string; user: string; timeoutMs?: number; responseFormat?: "json_object" | "text" };
 export type AIResponse = { text: string; inputTokens?: number; outputTokens?: number; provider: AIProviderName; model: string };
+
+export class AIProviderRequestError extends Error {
+  constructor(public readonly statusCode: number | null, public readonly errorClass: string) {
+    super(errorClass);
+    this.name = "AIProviderRequestError";
+  }
+}
 
 export interface AIProvider { name: AIProviderName; model: string; generateText(request: AIRequest): Promise<AIResponse>; }
 
@@ -27,7 +34,7 @@ class GeminiProvider implements AIProvider {
   async generateText(request: AIRequest): Promise<AIResponse> {
     const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), request.timeoutMs || 20000);
     try {
-      const response = await this.client.models.generateContent({ model: this.model, contents: request.user, config: { systemInstruction: request.system, temperature: 0.2, responseMimeType: "application/json", abortSignal: controller.signal } });
+      const response = await this.client.models.generateContent({ model: this.model, contents: request.user, config: { systemInstruction: request.system, temperature: 0.2, ...(request.responseFormat === "text" ? {} : { responseMimeType: "application/json" }), abortSignal: controller.signal } });
       return { text: response.text || "{}", provider: this.name, model: this.model, inputTokens: response.usageMetadata?.promptTokenCount, outputTokens: response.usageMetadata?.candidatesTokenCount };
     } finally { clearTimeout(timeout); }
   }
@@ -40,11 +47,15 @@ class GroqProvider implements AIProvider {
   async generateText(request: AIRequest): Promise<AIResponse> {
     const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), request.timeoutMs || 20000);
     try {
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${this.apiKey}` }, body: JSON.stringify({ model: this.model, temperature: 0.2, response_format: { type: "json_object" }, messages: [{ role: "system", content: request.system }, { role: "user", content: request.user }] }), signal: controller.signal });
-      if (!response.ok) throw new Error("ai_provider_request_failed");
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${this.apiKey}` }, body: JSON.stringify({ model: this.model, temperature: 0.2, ...(request.responseFormat === "text" ? {} : { response_format: { type: "json_object" } }), messages: [{ role: "system", content: request.system }, { role: "user", content: request.user }] }), signal: controller.signal });
+      if (!response.ok) throw new AIProviderRequestError(response.status, "ai_provider_request_failed");
       const body = await response.json() as GroqResponse; const text = body.choices?.[0]?.message?.content;
-      if (!text) throw new Error("ai_empty_response");
+      if (!text) throw new AIProviderRequestError(response.status, "ai_empty_response");
       return { text, provider: this.name, model: this.model, inputTokens: body.usage?.prompt_tokens, outputTokens: body.usage?.completion_tokens };
+    } catch (error) {
+      if (error instanceof AIProviderRequestError) throw error;
+      if (error instanceof Error && error.name === "AbortError") throw new AIProviderRequestError(null, "ai_provider_timeout");
+      throw new AIProviderRequestError(null, "ai_provider_connection_failed");
     } finally { clearTimeout(timeout); }
   }
 }
