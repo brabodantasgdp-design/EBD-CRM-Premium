@@ -9,6 +9,11 @@ type Body = { action?: "test" | "save" | "disable"; provider?: unknown; model?: 
 type FailureCode = "INVALID_INPUT" | "PROVIDER_CONNECTION_FAILED" | "ENCRYPTION_FAILED" | "PERSISTENCE_FAILED" | "AI_CONFIGURATION_ERROR";
 type SafePostgrestError = { code?: unknown; constraint?: unknown };
 
+function sanitizeDatabaseDiagnostic(value: unknown) {
+  if (typeof value !== "string") return undefined;
+  return value.replace(/bearer\s+\S+/gi, "Bearer [REDACTED]").replace(/[A-Za-z0-9_=-]{32,}/g, "[REDACTED]").slice(0, 240);
+}
+
 async function authorized() {
   const { supabase, user } = await requireUser();
   const organization = await getCurrentOrganization();
@@ -34,8 +39,8 @@ export async function POST(request: Request) {
   if (!auth) return NextResponse.json({ code: "AI_CONFIGURATION_ERROR", error: "Acesso negado", requestId }, { status: 403 });
   const body = await request.json().catch(() => null) as Body | null;
   const apiKeyPresent = typeof body?.apiKey === "string" && body.apiKey.length > 0;
-  const logFailure = (failureStage: string, errorClass: string, providerStatusCode?: number | null, supabaseErrorCode?: string | null, constraint?: string | null) => console.warn("[ai-settings]", JSON.stringify({ requestId, organizationId: auth.organization.id, userId: auth.user.id, provider: isSupportedAIProvider(body?.provider) ? body.provider : "unknown", model: typeof body?.model === "string" ? body.model.trim() : "unknown", apiKeyPresent, apiKeyLength: typeof body?.apiKey === "string" ? body.apiKey.length : 0, failureStage, providerStatusCode: providerStatusCode ?? undefined, supabaseErrorCode: supabaseErrorCode && /^[A-Za-z0-9_.-]+$/.test(supabaseErrorCode) ? supabaseErrorCode : undefined, constraint: constraint && /^[A-Za-z0-9_.-]+$/.test(constraint) ? constraint : undefined, errorClass }));
-  const failure = (code: FailureCode, message: string, status: number, failureStage: string, errorClass: string, providerStatusCode?: number | null, supabaseErrorCode?: string | null, constraint?: string | null) => { logFailure(failureStage, errorClass, providerStatusCode, supabaseErrorCode, constraint); return NextResponse.json({ code, message, requestId, ...(providerStatusCode ? { providerStatusCode } : {}) }, { status }); };
+  const logFailure = (failureStage: string, errorClass: string, providerStatusCode?: number | null, supabaseErrorCode?: string | null, constraint?: string | null, databaseMessage?: unknown, databaseHint?: unknown, databaseDetails?: unknown) => console.warn("[ai-settings]", JSON.stringify({ requestId, organizationId: auth.organization.id, userId: auth.user.id, provider: isSupportedAIProvider(body?.provider) ? body.provider : "unknown", model: typeof body?.model === "string" ? body.model.trim() : "unknown", apiKeyPresent, apiKeyLength: typeof body?.apiKey === "string" ? body.apiKey.length : 0, failureStage, providerStatusCode: providerStatusCode ?? undefined, supabaseErrorCode: supabaseErrorCode && /^[A-Za-z0-9_.-]+$/.test(supabaseErrorCode) ? supabaseErrorCode : undefined, constraint: constraint && /^[A-Za-z0-9_.-]+$/.test(constraint) ? constraint : undefined, supabaseErrorMessage: sanitizeDatabaseDiagnostic(databaseMessage), supabaseHint: sanitizeDatabaseDiagnostic(databaseHint), supabaseDetails: sanitizeDatabaseDiagnostic(databaseDetails), errorClass }));
+  const failure = (code: FailureCode, message: string, status: number, failureStage: string, errorClass: string, providerStatusCode?: number | null, supabaseErrorCode?: string | null, constraint?: string | null, databaseMessage?: unknown, databaseHint?: unknown, databaseDetails?: unknown) => { logFailure(failureStage, errorClass, providerStatusCode, supabaseErrorCode, constraint, databaseMessage, databaseHint, databaseDetails); return NextResponse.json({ code, message, requestId, ...(providerStatusCode ? { providerStatusCode } : {}) }, { status }); };
   if (body?.action === "disable") {
     const { error } = await auth.supabase.from("organization_ai_settings").update({ enabled: false, updated_by: auth.user.id }).eq("organization_id", auth.organization.id);
     return error ? failure("PERSISTENCE_FAILED", "Não foi possível desativar o provider.", 400, "disable", "supabase_update_failed") : NextResponse.json({ success: true, enabled: false, requestId });
@@ -58,7 +63,8 @@ export async function POST(request: Request) {
   const { error } = await auth.supabase.rpc("upsert_organization_ai_setting", { target_organization: auth.organization.id, target_provider: config.provider, target_model: config.model, target_encrypted_api_key: encryptedApiKey, target_key_last_four: config.apiKey.slice(-4) });
   if (error) {
     const safeError = error as unknown as SafePostgrestError;
-    return failure("PERSISTENCE_FAILED", "Não foi possível salvar a configuração.", 400, "upsert", "supabase_upsert_failed", null, typeof safeError.code === "string" ? safeError.code : null, typeof safeError.constraint === "string" ? safeError.constraint : null);
+    const databaseError = error as unknown as { message?: unknown; hint?: unknown; details?: unknown };
+    return failure("PERSISTENCE_FAILED", "Não foi possível salvar a configuração.", 400, "upsert", "supabase_upsert_failed", null, typeof safeError.code === "string" ? safeError.code : null, typeof safeError.constraint === "string" ? safeError.constraint : null, databaseError.message, databaseError.hint, databaseError.details);
   }
   return NextResponse.json({ success: true, provider: provider.name, model: provider.model, configured: true, keyLastFour: config.apiKey.slice(-4), requestId });
 }
