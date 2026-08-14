@@ -55,7 +55,7 @@ export async function POST(request: Request) {
   if (body.action === "test") return NextResponse.json({ success: true, provider: provider.name, model: provider.model, message: "Conexão testada com sucesso.", requestId });
   let encryptedApiKey: string;
   try { encryptedApiKey = encryptAICredential(config.apiKey); } catch (error) { return failure("ENCRYPTION_FAILED", "Não foi possível proteger a credencial no servidor.", 500, "encryption", error instanceof Error ? error.name : "encryption_error"); }
-  const { error } = await auth.supabase.from("organization_ai_settings").upsert({ organization_id: auth.organization.id, provider: config.provider, model: config.model, encrypted_api_key: encryptedApiKey, key_last_four: config.apiKey.slice(-4), enabled: true, created_by: auth.user.id, updated_by: auth.user.id }, { onConflict: "organization_id" });
+  const { error } = await auth.supabase.rpc("upsert_organization_ai_setting", { target_organization: auth.organization.id, target_provider: config.provider, target_model: config.model, target_encrypted_api_key: encryptedApiKey, target_key_last_four: config.apiKey.slice(-4) });
   if (error) {
     const safeError = error as unknown as SafePostgrestError;
     return failure("PERSISTENCE_FAILED", "Não foi possível salvar a configuração.", 400, "upsert", "supabase_upsert_failed", null, typeof safeError.code === "string" ? safeError.code : null, typeof safeError.constraint === "string" ? safeError.constraint : null);

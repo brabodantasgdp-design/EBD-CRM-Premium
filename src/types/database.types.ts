@@ -1555,6 +1555,16 @@ export type Database = {
         Args: { target_org: string; target_user?: string }
         Returns: boolean
       }
+      upsert_organization_ai_setting: {
+        Args: {
+          target_encrypted_api_key: string
+          target_key_last_four: string
+          target_model: string
+          target_organization: string
+          target_provider: string
+        }
+        Returns: undefined
+      }
       can_manage_members: {
         Args: { target_organization: string; target_user?: string }
         Returns: boolean
