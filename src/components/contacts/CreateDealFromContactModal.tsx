@@ -198,7 +198,7 @@ export const CreateDealFromContactModal: React.FC<CreateDealFromContactModalProp
               className="px-5 py-2 font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md shadow-indigo-600/30 flex items-center gap-1.5"
             >
               <Check className="h-4 w-4" />
-              <span>Criar Negócio Mock</span>
+              <span>Criar negócio</span>
             </button>
           </div>
         </form>

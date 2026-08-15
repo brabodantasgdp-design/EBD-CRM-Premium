@@ -23,6 +23,8 @@ with sync_playwright() as p:
     page.on('pageerror', lambda error: report['errors'].append({'type': 'pageerror', 'text': str(error)}))
     page.on('response', lambda response: report.setdefault('login_responses', []).append({'status': response.status, 'path': response.url.rsplit('/', 1)[-1]}) if '/api/auth/login' in response.url else None)
     page.goto(base + '/login', wait_until='domcontentloaded', timeout=20000)
+    page.locator('input[type="email"]').wait_for(state='visible', timeout=20000)
+    page.wait_for_timeout(1000)
     page.locator('input[type="email"]').fill(email)
     page.locator('input[type="password"]').fill(password)
     try:
@@ -46,8 +48,10 @@ with sync_playwright() as p:
         'url': page.url,
         'reports_page': page.get_by_test_id('reports-page').count() == 1,
         'has_placeholder': any(value in body for value in ['Módulo em preparação', 'dados simulados', 'Protótipo']),
-        'labels': {value: value in body for value in ['Funil por etapa', 'Receita ganha', 'Leads ativos', 'Relatórios', 'Carregando dados reais…']},
-        'has_real_sections': all(value in body for value in ['Funil por etapa', 'Receita ganha', 'Leads ativos']),
+        'labels': {value: value.lower() in body.lower() for value in ['Funil por etapa', 'Receita ganha', 'Leads ativos', 'Relatórios', 'Carregando dados reais…']},
+        'headings': page.locator('h1,h2,h3').all_inner_texts(),
+        'article_starts': [text.split('\n')[:4] for text in page.locator('article').all_inner_texts()],
+        'has_real_sections': all(value.lower() in body.lower() for value in ['Funil por etapa', 'Receita ganha', 'Leads ativos']),
         'overflow': page.evaluate('document.documentElement.scrollWidth > window.innerWidth'),
     }
     api = page.evaluate("""async () => { const response = await fetch('/api/reports?period=este_mes', { cache: 'no-store' }); const body = await response.json(); return { status: response.status, hasReport: Boolean(body.report), finite: body.report ? [body.report.kpis.revenue, body.report.kpis.forecast, body.report.closed.winRate].every(Number.isFinite) : false }; }""")
