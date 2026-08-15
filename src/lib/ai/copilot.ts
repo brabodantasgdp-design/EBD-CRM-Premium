@@ -41,7 +41,7 @@ function parse(raw: string) {
   } catch { throw new Error("ai_invalid_output"); }
 }
 
-export async function runCopilot(client: Client, userId: string, organizationId: string, input: { feature: Feature; question?: string; entityType?: EntityType; entityId?: string; conversationId?: string }) {
+export async function runCopilot(client: Client, userId: string, organizationId: string, input: { feature: Feature; question?: string; entityType?: EntityType; entityId?: string; conversationId?: string }, providerOverride?: Awaited<ReturnType<typeof getAIProviderForOrganization>>) {
   const requestId = crypto.randomUUID();
   let provider: Awaited<ReturnType<typeof getAIProviderForOrganization>> | null = null;
   let contextItemCount = 0;
@@ -56,7 +56,7 @@ export async function runCopilot(client: Client, userId: string, organizationId:
   }
   const context = input.entityType && input.entityId ? await buildEntityContext(client, organizationId, input.entityType, input.entityId) : await buildGlobalContext(client, organizationId);
   contextItemCount = context.facts.length;
-  provider = await getAIProviderForOrganization(client, organizationId);
+  provider = providerOverride || await getAIProviderForOrganization(client, organizationId);
   const started = Date.now();
   const userPrompt = `TASK: ${input.feature}\nQUESTION: ${(input.question || "Analise este contexto e produza um resumo prático.").slice(0, 2000)}\nCRM_DATA_START\n${JSON.stringify(context.facts).slice(0, 30000)}\nCRM_DATA_END`;
   try {
