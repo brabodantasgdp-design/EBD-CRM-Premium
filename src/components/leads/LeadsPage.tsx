@@ -48,7 +48,9 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
     addDeal,
     pipelines,
     currentOrganizationRole,
+    members,
   } = useCRM();
+  const ownerOptions = hasSupabaseConfiguration() ? members : MOCK_OWNERS;
   const canWriteLeads = currentOrganizationRole !== "viewer" && currentOrganizationRole !== "suspended";
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
@@ -386,8 +388,8 @@ export const LeadsPage: React.FC<LeadsPageProps> = ({
     const targetCount = selectedIds.length;
     if (targetCount === 0) return;
 
-    const ownerObj = MOCK_OWNERS.find((o) => o.id === ownerId);
-    const ownerName = ownerObj ? ownerObj.name : "Mariana Costa";
+    const ownerObj = ownerOptions.find((o) => o.id === ownerId);
+    const ownerName = ownerObj?.name || "Sem responsável";
     const ownerAvatar = ownerObj ? ownerObj.avatar : undefined;
 
     bulkUpdateLeadsOwner(selectedIds, ownerId, ownerName, ownerAvatar);

@@ -79,7 +79,7 @@ export const LeadConversionModal: React.FC<LeadConversionModalProps> = ({
                 Converter Lead em Oportunidade
               </h2>
               <p className="text-xs text-emerald-100">
-                Demonstração visual da vinculação de Contato, Empresa e Negócio no pipeline.
+                A conversão vincula Contato, Empresa e Negócio ao pipeline.
               </p>
             </div>
           </div>

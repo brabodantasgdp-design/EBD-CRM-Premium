@@ -21,6 +21,8 @@ import {
   COMPANY_TAGS,
 } from "../../constants/companyStatus";
 import { MOCK_OWNERS } from "../../data/mockContactsData";
+import { useCRM } from "../../context/CRMContext";
+import { hasSupabaseConfiguration } from "../../lib/supabase/env";
 
 interface CompanyFormModalProps {
   initialCompany?: CompanyItem | null;
@@ -37,6 +39,9 @@ export const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
   onSave,
   onOpenExistingCompany,
 }) => {
+  const { members, companies } = useCRM();
+  const ownerOptions = hasSupabaseConfiguration() ? members : MOCK_OWNERS;
+  const tagOptions = hasSupabaseConfiguration() ? Array.from(new Set(companies.flatMap((company) => company.tags ?? []))) : COMPANY_TAGS;
   const isEditing = !!initialCompany;
 
   // Form Fields State
@@ -60,7 +65,7 @@ export const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
     initialCompany?.status || "prospect"
   );
   const [ownerId, setOwnerId] = useState(
-    initialCompany?.ownerId || MOCK_OWNERS[0].id
+    initialCompany?.ownerId || ownerOptions[0]?.id || ""
   );
   const [source, setSource] = useState(
     initialCompany?.source || "Prospecção Manual"
@@ -194,7 +199,7 @@ export const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
 
     setIsSubmitting(true);
 
-    const selectedOwner = MOCK_OWNERS.find((o) => o.id === ownerId) || MOCK_OWNERS[0];
+    const selectedOwner = ownerOptions.find((o) => o.id === ownerId) || ownerOptions[0];
 
     const companyData: Partial<CompanyItem> = {
       name: name.trim(),
@@ -458,7 +463,7 @@ export const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
                   onChange={(e) => setOwnerId(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:bg-white focus:border-indigo-600"
                 >
-                  {MOCK_OWNERS.map((owner) => (
+                  {ownerOptions.map((owner) => (
                     <option key={owner.id} value={owner.id}>
                       {owner.name}
                     </option>
@@ -651,7 +656,7 @@ export const CompanyFormModal: React.FC<CompanyFormModalProps> = ({
             <div>
               <label className="block font-bold text-slate-700 mb-1.5">Tags da Empresa</label>
               <div className="flex flex-wrap gap-1.5">
-                {COMPANY_TAGS.map((t) => {
+                {tagOptions.map((t) => {
                   const isSel = tags.includes(t);
                   return (
                     <button

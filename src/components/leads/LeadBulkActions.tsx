@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { LeadStatus } from "../../types/crm";
 import { MOCK_OWNERS, MOCK_TAGS } from "../../data/mockLeadsData";
+import { useCRM } from "../../context/CRMContext";
+import { hasSupabaseConfiguration } from "../../lib/supabase/env";
 
 interface LeadBulkActionsProps {
   selectedCount: number;
@@ -35,6 +37,9 @@ export const LeadBulkActions: React.FC<LeadBulkActionsProps> = ({
   onBulkExport,
   onBulkArchive,
 }) => {
+  const { members, leads } = useCRM();
+  const ownerOptions = hasSupabaseConfiguration() ? members : MOCK_OWNERS;
+  const tagOptions = hasSupabaseConfiguration() ? Array.from(new Set(leads.flatMap((lead) => lead.tags ?? []))) : MOCK_TAGS;
   const [activeMenu, setActiveMenu] = useState<
     "owner" | "status" | "tag" | "remove_tag" | null
   >(null);
@@ -80,7 +85,7 @@ export const LeadBulkActions: React.FC<LeadBulkActionsProps> = ({
                   <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700">
                     Atribuir Responsável
                   </div>
-                  {MOCK_OWNERS.map((owner) => (
+                  {ownerOptions.map((owner) => (
                     <button
                       key={owner.id}
                       onClick={() => {
@@ -173,7 +178,7 @@ export const LeadBulkActions: React.FC<LeadBulkActionsProps> = ({
                   <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700">
                     Adicionar Tag
                   </div>
-                  {MOCK_TAGS.map((t) => (
+                  {tagOptions.map((t) => (
                     <button
                       key={t}
                       onClick={() => {
@@ -211,7 +216,7 @@ export const LeadBulkActions: React.FC<LeadBulkActionsProps> = ({
                   <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700">
                     Remover Tag
                   </div>
-                  {MOCK_TAGS.map((tag) => (
+                  {tagOptions.map((tag) => (
                     <button
                       key={tag}
                       onClick={() => {

@@ -18,6 +18,7 @@ import { ActivityItem } from "../../types/crm";
 import { useCRM } from "../../context/CRMContext";
 import { getLocalDateString } from "../../utils/formatters";
 import { MOCK_TASK_OWNERS } from "../tasks/TaskFormModal";
+import { hasSupabaseConfiguration } from "../../lib/supabase/env";
 
 interface ActivityFormModalProps {
   isOpen: boolean;
@@ -42,7 +43,8 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
   onClose,
   onSave,
 }) => {
-  const { contacts, companies, deals } = useCRM();
+  const { contacts, companies, deals, members } = useCRM();
+  const ownerOptions = hasSupabaseConfiguration() ? members : MOCK_TASK_OWNERS;
 
   const [type, setType] = useState<"call" | "meeting" | "email" | "follow_up" | "note">("meeting");
   const [title, setTitle] = useState("");
@@ -122,6 +124,12 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
     setErrorMsg("");
   }, [activityToEdit, initialDate, initialTime, initialEntity, isOpen]);
 
+  useEffect(() => {
+    if (ownerOptions.length && !ownerOptions.some((owner) => owner.id === ownerId)) {
+      setOwnerId(activityToEdit?.ownerId || ownerOptions[0].id);
+    }
+  }, [activityToEdit?.ownerId, ownerId, ownerOptions]);
+
   if (!isOpen) return null;
 
   const handleEntitySelection = (id: string) => {
@@ -152,7 +160,7 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
       return;
     }
 
-    const ownerObj = MOCK_TASK_OWNERS.find((o) => o.id === ownerId);
+    const ownerObj = ownerOptions.find((o) => o.id === ownerId);
     const startAtIso = allDay ? `${date}T00:00:00` : `${date}T${startTime}:00`;
     const endAtIso = allDay ? `${date}T23:59:59` : `${date}T${endTime}:00`;
 
@@ -161,7 +169,7 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
       title: title.trim(),
       description: description.trim(),
       ownerId,
-      ownerName: ownerObj ? ownerObj.name : "Mariana Costa",
+      ownerName: ownerObj?.name || "Sem responsável",
       startAt: startAtIso,
       endAt: endAtIso,
       allDay,
@@ -362,7 +370,7 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
                 onChange={(e) => setOwnerId(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                {MOCK_TASK_OWNERS.map((o) => (
+                {ownerOptions.map((o) => (
                   <option key={o.id} value={o.id}>
                     {o.name}
                   </option>

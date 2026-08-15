@@ -35,13 +35,14 @@ export const DealsPage: React.FC<DealsPageProps> = ({
   onShowToast,
   currentPeriod = "este_mes",
 }) => {
-  const { deals, companies, contacts, pipelines, addDeal, updateDeal, moveDealStage, markDealWon, markDealLost, reopenDeal, archiveDeal, bulkArchiveDeals } = useCRM();
+  const { deals, companies, contacts, pipelines, addDeal, updateDeal, moveDealStage, markDealWon, markDealLost, reopenDeal, archiveDeal, bulkArchiveDeals, members } = useCRM();
   const commercialPersistence = hasSupabaseConfiguration();
+  const ownerOptions = commercialPersistence ? members : AVAILABLE_OWNERS;
   const realPipelines = useMemo<PipelineConfig[]>(() => pipelines.map((pipeline) => ({ id: pipeline.id, name: pipeline.name, description: pipeline.description || "", isDefault: pipeline.isDefault, stages: pipeline.stages.map((stage) => ({ id: stage.id, pipelineId: stage.pipelineId, name: stage.name, order: stage.position + 1, probability: stage.probability, color: stage.color || "slate" })) })), [pipelines]);
 
   // Active Pipeline & View Mode
   const [activePipeline, setActivePipeline] = useState<PipelineConfig>(
-    MOCK_PIPELINES[0]
+    commercialPersistence ? { id: "", name: "", description: "", isDefault: false, stages: [] } : MOCK_PIPELINES[0]
   );
   useEffect(() => { if (realPipelines.length && !realPipelines.some((pipeline) => pipeline.id === activePipeline.id)) setActivePipeline(realPipelines.find((pipeline) => pipeline.isDefault) || realPipelines[0]); }, [realPipelines, activePipeline.id]);
   const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
@@ -212,7 +213,7 @@ export const DealsPage: React.FC<DealsPageProps> = ({
     probability: number
   ) => {
     if (!reopenDealItem) return;
-    const pipe = (realPipelines.length ? realPipelines : MOCK_PIPELINES).find((p) => p.id === pId);
+    const pipe = (commercialPersistence ? realPipelines : MOCK_PIPELINES).find((p) => p.id === pId);
     if (pipelines.length) reopenDeal(reopenDealItem.id, pId, stgId);
     else updateDeal(reopenDealItem.id, {
       status: "open",
@@ -285,7 +286,7 @@ export const DealsPage: React.FC<DealsPageProps> = ({
       {/* 1. Header with Title, Pipeline Selector & Primary Actions */}
       <DealsHeader
         activePipeline={activePipeline}
-        pipelines={realPipelines.length ? realPipelines : MOCK_PIPELINES}
+        pipelines={commercialPersistence ? realPipelines : MOCK_PIPELINES}
         onSelectPipeline={(p) => {
           setActivePipeline(p);
           toast(`Funil alterado para: ${p.name}`);
@@ -315,7 +316,7 @@ export const DealsPage: React.FC<DealsPageProps> = ({
       <DealsFilters
         filters={filters}
         onChangeFilters={(f) => setFilters(f)}
-        availableOwners={AVAILABLE_OWNERS}
+        availableOwners={ownerOptions}
         availableCompanies={companies}
         availableTags={availableTags}
       />
@@ -363,7 +364,7 @@ export const DealsPage: React.FC<DealsPageProps> = ({
         onBulkUpdateOwner={handleBulkUpdateOwner}
         onBulkArchive={handleBulkArchive}
         availableStages={activePipeline.stages}
-        availableOwners={AVAILABLE_OWNERS}
+        availableOwners={ownerOptions}
       />
 
       {/* MODALS & DRAWERS */}
@@ -376,7 +377,7 @@ export const DealsPage: React.FC<DealsPageProps> = ({
         initialPipeline={activePipeline}
         availableCompanies={companies}
         availableContacts={contacts}
-        availableOwners={AVAILABLE_OWNERS}
+        availableOwners={ownerOptions}
         availablePipelines={commercialPersistence ? realPipelines : MOCK_PIPELINES}
         onSave={handleSaveDeal}
       />

@@ -124,6 +124,7 @@ export const ContactsPage: React.FC<ContactsPageProps> = ({
     deals,
     addTask,
     getEntityTasks,
+    members,
   } = useCRM();
 
   // Contacts enriched with their live linked deals from global deals
@@ -175,8 +176,8 @@ export const ContactsPage: React.FC<ContactsPageProps> = ({
     return Array.from(new Set(list));
   }, [contacts]);
 
-  const availableTags = MOCK_CONTACT_TAGS;
-  const availableOwners = MOCK_OWNERS;
+  const availableTags = commercialPersistence ? Array.from(new Set(rawContacts.flatMap((contact) => contact.tags ?? []))) : MOCK_CONTACT_TAGS;
+  const availableOwners = commercialPersistence ? members : MOCK_OWNERS;
 
   // Filtered & Sorted Contacts List
   const filteredContacts = useMemo(() => {

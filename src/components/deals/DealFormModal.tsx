@@ -43,11 +43,10 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Active pipeline object
-  const activePipeline =
-    availablePipelines.find((p) => p.id === pipelineId) || availablePipelines[0] || MOCK_PIPELINES[0];
+  const activePipeline = availablePipelines.find((p) => p.id === pipelineId) || availablePipelines[0] || null;
 
   // Active stages for current pipeline
-  const activeStages = activePipeline.stages;
+  const activeStages = activePipeline?.stages ?? [];
 
   useEffect(() => {
     if (dealToEdit) {
@@ -64,7 +63,8 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
       setNotesInput("");
     } else {
       setName("");
-      const targetPipe = initialPipeline || availablePipelines[0] || MOCK_PIPELINES[0];
+      const targetPipe = initialPipeline || availablePipelines[0];
+      if (!targetPipe) return;
       setPipelineId(targetPipe.id);
       const targetStage = initialStage || targetPipe.stages[0];
       setStageId(targetStage.id);
@@ -166,6 +166,7 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
   };
 
   if (!isOpen) return null;
+  if (!activePipeline) return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"><div className="w-full max-w-md rounded-2xl bg-white p-6 text-center"><h3 className="font-bold text-slate-900">Nenhum pipeline disponível</h3><p className="mt-2 text-sm text-slate-500">Crie um pipeline antes de cadastrar um negócio.</p><button type="button" onClick={onClose} className="mt-4 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white">Fechar</button></div></div>;
 
   return (
     <div data-testid="deal-form-modal" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs overflow-y-auto">

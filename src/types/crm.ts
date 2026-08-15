@@ -594,6 +594,7 @@ export interface CRMContextType {
   tasks: TaskItem[];
   activities: ActivityItem[];
   currentOrganizationRole?: string | null;
+  members: { id: string; name: string; avatar: string; role: string; status: string }[];
 
   addLead: (lead: Partial<LeadItem>) => LeadItem;
   updateLead: (id: string, updates: Partial<LeadItem>) => void;

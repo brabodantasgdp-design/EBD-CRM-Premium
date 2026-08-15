@@ -53,6 +53,7 @@ export const CompaniesPage: React.FC<CompaniesPageProps> = ({
     addContact,
     addDeal,
     addTask,
+    members,
   } = useCRM();
 
   // Enriched companies dynamically carrying their live global contacts and global deals
@@ -97,6 +98,7 @@ export const CompaniesPage: React.FC<CompaniesPageProps> = ({
   const [showImportModal, setShowImportModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const commercialPersistence = hasSupabaseConfiguration();
+  const availableContactTags = commercialPersistence ? Array.from(new Set(globalContacts.flatMap((contact) => contact.tags ?? []))) : MOCK_CONTACT_TAGS;
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -541,8 +543,8 @@ export const CompaniesPage: React.FC<CompaniesPageProps> = ({
             updatedAt: "",
           }}
           existingContacts={globalContacts}
-          availableOwners={MOCK_OWNERS}
-          availableTags={MOCK_CONTACT_TAGS}
+          availableOwners={commercialPersistence ? members : MOCK_OWNERS}
+          availableTags={availableContactTags}
           onClose={() => setContactModalCompany(null)}
           onSave={handleSaveContactFromCompany}
         />
