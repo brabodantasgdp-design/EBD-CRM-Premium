@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { X, Briefcase, Check, User } from "lucide-react";
 import { ContactItem, ContactDeal } from "../../types/crm";
 import { MOCK_OWNERS } from "../../data/mockContactsData";
+import { useCRM } from "../../context/CRMContext";
+import { hasSupabaseConfiguration } from "../../lib/supabase/env";
 
 interface CreateDealFromContactModalProps {
   contact: ContactItem;
@@ -16,19 +18,21 @@ export const CreateDealFromContactModal: React.FC<CreateDealFromContactModalProp
   onSaveDeal,
   availableOwners = MOCK_OWNERS,
 }) => {
+  const { members } = useCRM();
+  const owners = hasSupabaseConfiguration() ? members : availableOwners;
   const [dealName, setDealName] = useState(`Oportunidade - ${contact.companyName || contact.fullName}`);
   const [pipelineName, setPipelineName] = useState("Vendas B2B Direct");
   const [stageName, setStageName] = useState("Diagnóstico");
   const [value, setValue] = useState("35000");
   const [expectedCloseDate, setExpectedCloseDate] = useState("30/09/2026");
-  const [ownerId, setOwnerId] = useState<string>(contact.ownerId || availableOwners[0]?.id || "usr-1");
+  const [ownerId, setOwnerId] = useState<string>(contact.ownerId || owners[0]?.id || "usr-1");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const numValue = parseFloat(value.replace(/\D/g, "")) || 0;
     const formattedVal = `R$ ${numValue.toLocaleString("pt-BR")}`;
-    const selectedOwner = availableOwners.find((o) => o.id === ownerId) || {
+    const selectedOwner = owners.find((o) => o.id === ownerId) || {
       id: contact.ownerId,
       name: contact.ownerName,
     };
@@ -50,7 +54,7 @@ export const CreateDealFromContactModal: React.FC<CreateDealFromContactModalProp
     onSaveDeal(newDeal);
   };
 
-  const currentSelectedOwner = availableOwners.find((o) => o.id === ownerId) || {
+    const currentSelectedOwner = owners.find((o) => o.id === ownerId) || {
     name: contact.ownerName,
   };
 
@@ -104,7 +108,7 @@ export const CreateDealFromContactModal: React.FC<CreateDealFromContactModalProp
               onChange={(e) => setOwnerId(e.target.value)}
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:bg-white focus:border-indigo-600"
             >
-              {availableOwners.map((owner) => (
+              {owners.map((owner) => (
                 <option key={owner.id} value={owner.id}>
                   {owner.name} {owner.id === contact.ownerId ? "(Responsável do Contato)" : ""}
                 </option>
@@ -198,7 +202,7 @@ export const CreateDealFromContactModal: React.FC<CreateDealFromContactModalProp
               className="px-5 py-2 font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md shadow-indigo-600/30 flex items-center gap-1.5"
             >
               <Check className="h-4 w-4" />
-              <span>Criar Negócio Mock</span>
+              <span>Criar negócio</span>
             </button>
           </div>
         </form>

@@ -29,6 +29,7 @@ import { useCRM } from "../../context/CRMContext";
 import { ActivityFormModal } from "./ActivityFormModal";
 import { TaskFormModal, MOCK_TASK_OWNERS } from "../tasks/TaskFormModal";
 import { getLocalDateString } from "../../utils/formatters";
+import { hasSupabaseConfiguration } from "../../lib/supabase/env";
 
 interface AgendaPageProps {
   onShowToast: (msg: string) => void;
@@ -48,7 +49,9 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({
     cancelActivity,
     completeTask,
     reopenTask,
+    members,
   } = useCRM();
+  const ownerOptions = hasSupabaseConfiguration() ? members : MOCK_TASK_OWNERS;
 
   // View modes
   const [viewMode, setViewMode] = useState<"day" | "week" | "month" | "list">("week");
@@ -383,7 +386,7 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({
                 className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200"
               >
                 <option value="all">Resp: Todos</option>
-                {MOCK_TASK_OWNERS.map((o) => (
+                      {ownerOptions.map((o) => (
                   <option key={o.id} value={o.id}>
                     {o.name}
                   </option>

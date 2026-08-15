@@ -20,6 +20,7 @@ interface TasksBulkActionsProps {
   onBulkChangeOwner: (ownerId: string, ownerName: string) => void;
   onBulkChangePriority: (priority: "low" | "medium" | "high") => void;
   onBulkChangeDueDate: (dueDate: string) => void;
+  ownerOptions?: { id: string; name: string }[];
 }
 
 export const TasksBulkActions: React.FC<TasksBulkActionsProps> = ({
@@ -31,6 +32,7 @@ export const TasksBulkActions: React.FC<TasksBulkActionsProps> = ({
   onBulkChangeOwner,
   onBulkChangePriority,
   onBulkChangeDueDate,
+  ownerOptions = MOCK_TASK_OWNERS,
 }) => {
   const [showOwnerMenu, setShowOwnerMenu] = useState(false);
   const [showPriorityMenu, setShowPriorityMenu] = useState(false);
@@ -87,7 +89,7 @@ export const TasksBulkActions: React.FC<TasksBulkActionsProps> = ({
               <div className="px-3 py-1.5 text-[10px] font-bold uppercase text-slate-400 border-b border-slate-700">
                 Atribuir para
               </div>
-              {MOCK_TASK_OWNERS.map((o) => (
+              {ownerOptions.map((o) => (
                 <button
                   key={o.id}
                   onClick={() => {

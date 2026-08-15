@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { X, Sparkles, AlertCircle, Check } from "lucide-react";
 import { LeadItem, LeadStatus, LeadSourceType } from "../../types/crm";
 import { MOCK_OWNERS, MOCK_TAGS } from "../../data/mockLeadsData";
+import { useCRM } from "../../context/CRMContext";
+import { hasSupabaseConfiguration } from "../../lib/supabase/env";
 
 interface LeadFormModalProps {
   isOpen: boolean;
@@ -20,6 +22,9 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
   onSubmitSuccess,
   existingEmails = ["ana.martins@luminatech.com.br"],
 }) => {
+  const { members, leads } = useCRM();
+  const ownerOptions = hasSupabaseConfiguration() ? members : MOCK_OWNERS;
+  const tagOptions = hasSupabaseConfiguration() ? Array.from(new Set(leads.flatMap((lead) => lead.tags ?? []))) : MOCK_TAGS;
   const [formData, setFormData] = useState({
     name: "",
     company: "",
@@ -128,7 +133,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
 
     setIsSubmitting(true);
 
-    const selectedOwner = MOCK_OWNERS.find((o) => o.id === formData.ownerId);
+    const selectedOwner = ownerOptions.find((o) => o.id === formData.ownerId);
 
     setTimeout(() => {
       setIsSubmitting(false);
@@ -142,7 +147,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
         status: formData.status,
         source: formData.source,
         ownerId: formData.ownerId,
-        ownerName: selectedOwner?.name || "Mariana Costa",
+        ownerName: selectedOwner?.name || "Sem responsável",
         ownerAvatar: selectedOwner?.avatar,
         tags: formData.tags,
         score: initialLead?.score ?? 65,
@@ -328,7 +333,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                 }
                 className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
               >
-                {MOCK_OWNERS.map((owner) => (
+                {ownerOptions.map((owner) => (
                   <option key={owner.id} value={owner.id}>
                     {owner.name}
                   </option>
@@ -367,7 +372,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
               Tags
             </label>
             <div className="flex flex-wrap gap-1.5">
-              {MOCK_TAGS.map((tag) => {
+              {tagOptions.map((tag) => {
                 const isSelected = formData.tags.includes(tag);
                 return (
                   <button

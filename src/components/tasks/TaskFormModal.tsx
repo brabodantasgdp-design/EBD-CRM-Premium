@@ -3,6 +3,7 @@ import { X, Calendar, Clock, User, Tag, FileText, AlertCircle, Link } from "luci
 import { TaskItem } from "../../types/crm";
 import { useCRM } from "../../context/CRMContext";
 import { getLocalDateString } from "../../utils/formatters";
+import { hasSupabaseConfiguration } from "../../lib/supabase/env";
 
 export const MOCK_TASK_OWNERS = [
   { id: "usr-1", name: "Mariana Costa" },
@@ -30,7 +31,8 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   onClose,
   onSave,
 }) => {
-  const { contacts, companies, deals } = useCRM();
+  const { contacts, companies, deals, members } = useCRM();
+  const ownerOptions = hasSupabaseConfiguration() ? members : MOCK_TASK_OWNERS;
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -87,6 +89,12 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
     setErrorMsg("");
   }, [taskToEdit, initialEntity, isOpen]);
 
+  useEffect(() => {
+    if (ownerOptions.length && !ownerOptions.some((owner) => owner.id === ownerId)) {
+      setOwnerId(taskToEdit?.ownerId || ownerOptions[0].id);
+    }
+  }, [ownerId, ownerOptions, taskToEdit?.ownerId]);
+
   if (!isOpen) return null;
 
   const handleEntitySelection = (id: string) => {
@@ -117,7 +125,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
       return;
     }
 
-    const ownerObj = MOCK_TASK_OWNERS.find((o) => o.id === ownerId);
+    const ownerObj = ownerOptions.find((o) => o.id === ownerId);
     const parsedTags = tagsInput
       .split(",")
       .map((t) => t.trim())
@@ -127,7 +135,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
       title: title.trim(),
       description: description.trim(),
       ownerId: ownerId || "usr-1",
-      ownerName: ownerObj ? ownerObj.name : "Mariana Costa",
+      ownerName: ownerObj?.name || "Sem responsável",
       dueDate,
       dueTime,
       priority,
@@ -218,7 +226,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
                   onChange={(e) => setOwnerId(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                  {MOCK_TASK_OWNERS.map((o) => (
+                  {ownerOptions.map((o) => (
                     <option key={o.id} value={o.id}>
                       {o.name}
                     </option>

@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { LeadStatus, LeadSourceType } from "../../types/crm";
 import { MOCK_OWNERS, MOCK_TAGS } from "../../data/mockLeadsData";
+import { useCRM } from "../../context/CRMContext";
+import { hasSupabaseConfiguration } from "../../lib/supabase/env";
 
 export interface FilterState {
   searchQuery: string;
@@ -42,6 +44,9 @@ export const LeadFilters: React.FC<LeadFiltersProps> = ({
   onViewModeChange,
   totalFilteredCount,
 }) => {
+  const { members, leads } = useCRM();
+  const ownerOptions = hasSupabaseConfiguration() ? members : MOCK_OWNERS;
+  const tagOptions = hasSupabaseConfiguration() ? Array.from(new Set(leads.flatMap((lead) => lead.tags ?? []))) : MOCK_TAGS;
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const hasActiveFilters =
@@ -69,7 +74,7 @@ export const LeadFilters: React.FC<LeadFiltersProps> = ({
   };
 
   const getOwnerName = (id: string) => {
-    return MOCK_OWNERS.find((o) => o.id === id)?.name || id;
+    return ownerOptions.find((o) => o.id === id)?.name || id;
   };
 
   return (
@@ -199,7 +204,7 @@ export const LeadFilters: React.FC<LeadFiltersProps> = ({
             className="appearance-none bg-white border border-slate-200 rounded-xl pl-3 pr-7 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
           >
             <option value="all">Responsável: Todos</option>
-            {MOCK_OWNERS.map((owner) => (
+            {ownerOptions.map((owner) => (
               <option key={owner.id} value={owner.id}>
                 {owner.name}
               </option>
@@ -263,7 +268,7 @@ export const LeadFilters: React.FC<LeadFiltersProps> = ({
             className="appearance-none bg-white border border-slate-200 rounded-xl pl-3 pr-7 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
           >
             <option value="all">Tags: Todas</option>
-            {MOCK_TAGS.map((tag) => (
+            {tagOptions.map((tag) => (
               <option key={tag} value={tag}>
                 {tag}
               </option>
@@ -467,7 +472,7 @@ export const LeadFilters: React.FC<LeadFiltersProps> = ({
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-medium"
                 >
                   <option value="all">Todos</option>
-                  {MOCK_OWNERS.map((owner) => (
+                  {ownerOptions.map((owner) => (
                     <option key={owner.id} value={owner.id}>
                       {owner.name}
                     </option>
@@ -534,7 +539,7 @@ export const LeadFilters: React.FC<LeadFiltersProps> = ({
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-medium"
                 >
                   <option value="all">Todas</option>
-                  {MOCK_TAGS.map((tag) => (
+                  {tagOptions.map((tag) => (
                     <option key={tag} value={tag}>
                       {tag}
                     </option>

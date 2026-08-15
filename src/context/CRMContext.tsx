@@ -437,6 +437,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
     commercialPersistence ? [] : MOCK_LEADS.map(({ tasks: _tasks, activities: _activities, ...lead }) => lead)
   );
   const [currentOrganizationRole, setCurrentOrganizationRole] = useState<string | null>(null);
+  const [members, setMembers] = useState<{ id: string; name: string; avatar: string; role: string; status: string }[]>([]);
   const [tasks, setTasks] = useState<TaskItem[]>(commercialPersistence ? [] : MOCK_TASKS_SEED);
   const [activities, setActivities] = useState<ActivityItem[]>(commercialPersistence ? [] : MOCK_ACTIVITIES_SEED);
 
@@ -444,7 +445,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!commercialPersistence) return;
     let cancelled = false;
     const loadCommercialData = async () => {
-      const [companiesResponse, contactsResponse, pipelinesResponse, dealsResponse, leadsResponse, tasksResponse, activitiesResponse] = await Promise.all([
+      const [companiesResponse, contactsResponse, pipelinesResponse, dealsResponse, leadsResponse, tasksResponse, activitiesResponse, membersResponse] = await Promise.all([
         fetch("/api/commercial/companies", { cache: "no-store" }),
         fetch("/api/commercial/contacts", { cache: "no-store" }),
         fetch("/api/commercial/pipelines", { cache: "no-store" }),
@@ -452,6 +453,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         fetch("/api/commercial/leads", { cache: "no-store" }),
         fetch("/api/commercial/tasks", { cache: "no-store" }),
         fetch("/api/commercial/activities", { cache: "no-store" }),
+        fetch("/api/settings/team", { cache: "no-store" }),
       ]);
       const companiesJson = companiesResponse.headers.get("content-type")?.includes("application/json") ?? false;
       const contactsJson = contactsResponse.headers.get("content-type")?.includes("application/json") ?? false;
@@ -473,6 +475,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
       const leadsPayload = await leadsResponse.json() as { leads?: LeadItem[]; role?: string };
       const tasksPayload = await tasksResponse.json() as { tasks?: TaskItem[] };
       const activitiesPayload = await activitiesResponse.json() as { activities?: ActivityItem[] };
+      const membersPayload = membersResponse.headers.get("content-type")?.includes("application/json") ? await membersResponse.json() as { members?: { user_id: string; role: string; status: string; profiles?: { full_name?: string | null } | null }[] } : {};
       if (!cancelled) {
         setCompanies(companiesPayload.companies ?? []);
         setContacts(contactsPayload.contacts ?? []);
@@ -482,6 +485,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         setCurrentOrganizationRole(leadsPayload.role ?? null);
         setTasks(tasksPayload.tasks ?? []);
         setActivities(activitiesPayload.activities ?? []);
+        setMembers((membersPayload.members ?? []).filter((member) => member.status === "active").map((member) => ({ id: member.user_id, name: member.profiles?.full_name?.trim() || "Membro sem nome", avatar: "", role: member.role, status: member.status })));
       }
     };
     void loadCommercialData();
@@ -1337,6 +1341,7 @@ export const CRMDataProvider: React.FC<{ children: React.ReactNode }> = ({
         tasks,
         activities,
         currentOrganizationRole,
+        members,
         addLead,
         updateLead,
         archiveLead,

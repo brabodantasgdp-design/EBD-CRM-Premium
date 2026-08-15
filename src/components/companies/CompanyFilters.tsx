@@ -3,6 +3,8 @@ import { Search, Filter, X, RotateCcw, Building2, User, Layers, Tag, Briefcase, 
 import { CompanyStatus } from "../../types/crm";
 import { COMPANY_STATUS_CONFIG, COMPANY_SEGMENTS, COMPANY_SIZES, COMPANY_TAGS } from "../../constants/companyStatus";
 import { MOCK_OWNERS } from "../../data/mockContactsData";
+import { useCRM } from "../../context/CRMContext";
+import { hasSupabaseConfiguration } from "../../lib/supabase/env";
 
 export interface CompanyFilterState {
   searchQuery: string;
@@ -29,6 +31,9 @@ export const CompanyFilters: React.FC<CompanyFiltersProps> = ({
   onResetFilters,
   totalFilteredCount,
 }) => {
+  const { members, companies } = useCRM();
+  const ownerOptions = hasSupabaseConfiguration() ? members : MOCK_OWNERS;
+  const tagOptions = hasSupabaseConfiguration() ? Array.from(new Set(companies.flatMap((company) => company.tags ?? []))) : COMPANY_TAGS;
   const [mobileBottomSheetOpen, setMobileBottomSheetOpen] = useState(false);
 
   const hasActiveFilters =
@@ -60,7 +65,7 @@ export const CompanyFilters: React.FC<CompanyFiltersProps> = ({
     });
   }
   if (filters.ownerId !== "all") {
-    const ownerName = MOCK_OWNERS.find((o) => o.id === filters.ownerId)?.name || filters.ownerId;
+    const ownerName = ownerOptions.find((o) => o.id === filters.ownerId)?.name || filters.ownerId;
     activeChips.push({
       label: `Responsável: ${ownerName}`,
       onRemove: () => onFilterChange({ ...filters, ownerId: "all" }),
@@ -145,7 +150,7 @@ export const CompanyFilters: React.FC<CompanyFiltersProps> = ({
             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:bg-white focus:border-indigo-600"
           >
             <option value="all">Todos Responsáveis</option>
-            {MOCK_OWNERS.map((owner) => (
+            {ownerOptions.map((owner) => (
               <option key={owner.id} value={owner.id}>
                 {owner.name}
               </option>
@@ -294,7 +299,7 @@ export const CompanyFilters: React.FC<CompanyFiltersProps> = ({
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900"
                 >
                   <option value="all">Todos os Responsáveis</option>
-                  {MOCK_OWNERS.map((owner) => (
+                  {ownerOptions.map((owner) => (
                     <option key={owner.id} value={owner.id}>
                       {owner.name}
                     </option>
@@ -345,7 +350,7 @@ export const CompanyFilters: React.FC<CompanyFiltersProps> = ({
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900"
                 >
                   <option value="all">Todas as Tags</option>
-                  {COMPANY_TAGS.map((t) => (
+                  {tagOptions.map((t) => (
                     <option key={t} value={t}>
                       {t}
                     </option>

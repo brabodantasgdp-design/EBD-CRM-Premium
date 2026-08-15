@@ -13,6 +13,8 @@ import {
 import { CompanyStatus } from "../../types/crm";
 import { COMPANY_STATUS_CONFIG, COMPANY_TAGS } from "../../constants/companyStatus";
 import { MOCK_OWNERS } from "../../data/mockContactsData";
+import { useCRM } from "../../context/CRMContext";
+import { hasSupabaseConfiguration } from "../../lib/supabase/env";
 
 interface CompanyBulkActionsProps {
   selectedCount: number;
@@ -37,6 +39,8 @@ export const CompanyBulkActions: React.FC<CompanyBulkActionsProps> = ({
   onExportSelected,
   onArchiveSelected,
 }) => {
+  const { members } = useCRM();
+  const ownerOptions = hasSupabaseConfiguration() ? members : MOCK_OWNERS;
   const [activeDropdown, setActiveDropdown] = useState<
     "owner" | "status" | "addTag" | "removeTag" | "task" | null
   >(null);
@@ -83,7 +87,7 @@ export const CompanyBulkActions: React.FC<CompanyBulkActionsProps> = ({
                 <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-slate-400 font-bold border-b border-slate-100 mb-1">
                   Atribuir a:
                 </div>
-                {MOCK_OWNERS.map((owner) => (
+                {ownerOptions.map((owner) => (
                   <button
                     key={owner.id}
                     onClick={() => {

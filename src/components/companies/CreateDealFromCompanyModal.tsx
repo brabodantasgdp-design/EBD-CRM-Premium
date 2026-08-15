@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { X, Briefcase, Check, User, Building2, Users } from "lucide-react";
 import { CompanyItem, ContactDeal, ContactItem } from "../../types/crm";
 import { MOCK_OWNERS } from "../../data/mockContactsData";
+import { useCRM } from "../../context/CRMContext";
+import { hasSupabaseConfiguration } from "../../lib/supabase/env";
 
 interface CreateDealFromCompanyModalProps {
   company: CompanyItem;
@@ -18,13 +20,15 @@ export const CreateDealFromCompanyModal: React.FC<CreateDealFromCompanyModalProp
   onClose,
   onSaveDeal,
 }) => {
+  const { members } = useCRM();
+  const owners = hasSupabaseConfiguration() ? members : availableOwners;
   const [dealName, setDealName] = useState(`Oportunidade - ${company.name}`);
   const [pipelineName, setPipelineName] = useState("Vendas B2B Complexas");
   const [stageName, setStageName] = useState("Qualificação");
   const [value, setValue] = useState("48000");
   const [expectedCloseDate, setExpectedCloseDate] = useState("30/09/2026");
   const [ownerId, setOwnerId] = useState<string>(
-    company.ownerId || availableOwners[0]?.id || "usr-1"
+    company.ownerId || owners[0]?.id || "usr-1"
   );
   const [selectedContactId, setSelectedContactId] = useState<string>(
     availableContacts[0]?.id || ""
@@ -35,7 +39,7 @@ export const CreateDealFromCompanyModal: React.FC<CreateDealFromCompanyModalProp
 
     const numValue = parseFloat(value.replace(/\D/g, "")) || 0;
     const formattedVal = `R$ ${numValue.toLocaleString("pt-BR")}`;
-    const selectedOwner = availableOwners.find((o) => o.id === ownerId) || {
+    const selectedOwner = owners.find((o) => o.id === ownerId) || {
       id: company.ownerId,
       name: company.ownerName,
     };
@@ -136,7 +140,7 @@ export const CreateDealFromCompanyModal: React.FC<CreateDealFromCompanyModalProp
               onChange={(e) => setOwnerId(e.target.value)}
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:bg-white focus:border-purple-600"
             >
-              {availableOwners.map((owner) => (
+              {owners.map((owner) => (
                 <option key={owner.id} value={owner.id}>
                   {owner.name} {owner.id === company.ownerId ? "(Responsável da Empresa)" : ""}
                 </option>

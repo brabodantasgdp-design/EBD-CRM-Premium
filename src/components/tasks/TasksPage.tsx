@@ -30,6 +30,7 @@ import { getLocalDateString } from "../../utils/formatters";
 import { TasksMetrics } from "./TasksMetrics";
 import { TaskFormModal, MOCK_TASK_OWNERS } from "./TaskFormModal";
 import { TasksBulkActions } from "./TasksBulkActions";
+import { hasSupabaseConfiguration } from "../../lib/supabase/env";
 
 interface TasksPageProps {
   onShowToast: (msg: string) => void;
@@ -53,7 +54,9 @@ export const TasksPage: React.FC<TasksPageProps> = ({
     bulkCompleteTasks,
     bulkReopenTasks,
     bulkArchiveTasks,
+    members,
   } = useCRM();
+  const ownerOptions = hasSupabaseConfiguration() ? members : MOCK_TASK_OWNERS;
 
   // View mode
   const [viewMode, setViewMode] = useState<"list" | "board">("list");
@@ -516,7 +519,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({
               className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="all">Responsável: Todos</option>
-              {MOCK_TASK_OWNERS.map((o) => (
+              {ownerOptions.map((o) => (
                 <option key={o.id} value={o.id}>
                   {o.name}
                 </option>
@@ -1024,6 +1027,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({
         onBulkChangeOwner={handleBulkChangeOwner}
         onBulkChangePriority={handleBulkChangePriority}
         onBulkChangeDueDate={handleBulkChangeDueDate}
+        ownerOptions={ownerOptions}
       />
 
       {/* Task Form Modal (Create / Edit) */}
@@ -1095,7 +1099,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100"
                 >
                   <option value="all">Todos</option>
-                  {MOCK_TASK_OWNERS.map((o) => (
+                  {ownerOptions.map((o) => (
                     <option key={o.id} value={o.id}>
                       {o.name}
                     </option>

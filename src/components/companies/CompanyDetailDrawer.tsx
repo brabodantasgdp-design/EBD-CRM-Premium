@@ -37,7 +37,6 @@ import {
 } from "../../types/crm";
 import { CompanyStatusBadge } from "./CompanyStatusBadge";
 import { COMPANY_STATUS_CONFIG } from "../../constants/companyStatus";
-import { MOCK_OWNERS } from "../../data/mockContactsData";
 import { useCRM } from "../../context/CRMContext";
 import { getLocalDateString, getLocalDateTimeISO } from "../../utils/formatters";
 
