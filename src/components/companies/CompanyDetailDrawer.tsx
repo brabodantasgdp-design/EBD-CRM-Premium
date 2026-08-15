@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { CopilotEntityButton } from "../copilot/CopilotEntityButton";
 import {
   X,
   Building2,
@@ -243,6 +244,7 @@ export const CompanyDetailDrawer: React.FC<CompanyDetailDrawerProps> = ({
 
           {/* Primary Quick Action Buttons */}
           <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-800">
+            <CopilotEntityButton entityType="company" entityId={company.id} />
             <button
               onClick={() => onEditCompany(company)}
               className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs flex items-center gap-1.5 border border-slate-700 transition-colors"

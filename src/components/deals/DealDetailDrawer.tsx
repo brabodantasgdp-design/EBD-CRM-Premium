@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { CopilotEntityButton } from "../copilot/CopilotEntityButton";
 import {
   X,
   Building2,
@@ -282,6 +283,7 @@ export const DealDetailDrawer: React.FC<DealDetailDrawerProps> = ({
 
           {/* Top Quick Actions */}
           <div className="flex items-center gap-2 flex-wrap mt-4 pt-3 border-t border-slate-200/60 text-xs">
+            <CopilotEntityButton entityType="deal" entityId={deal.id} />
             <button
               type="button"
               onClick={() => onEditDeal(deal)}

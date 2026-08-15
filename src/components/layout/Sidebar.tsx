@@ -24,7 +24,7 @@ import {
   Layers,
   X,
 } from "lucide-react";
-import { MOCK_COMPANIES, MOCK_USER_PROFILE } from "../../data/mockCrmData";
+import { MOCK_COMPANIES } from "../../data/mockCrmData";
 import { CompanyAccount } from "../../types/crm";
 import { OrganizationSwitcher } from "../auth/OrganizationSwitcher";
 import { useCRM } from "../../context/CRMContext";
@@ -283,18 +283,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => setUserMenuOpen(!userMenuOpen)}
               className="flex items-center gap-2.5 text-left p-1 rounded-xl hover:bg-slate-800/80 w-full transition-colors"
             >
-              <img
-                src={MOCK_USER_PROFILE.avatar}
-                alt={MOCK_USER_PROFILE.name}
-                className="h-8 w-8 rounded-full object-cover ring-2 ring-indigo-500/30 shrink-0"
-              />
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700 ring-2 ring-indigo-500/30" aria-label="Conta autenticada">
+                NX
+              </div>
               {(!collapsed || mobileOpen) && (
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-semibold text-white truncate">
-                    {MOCK_USER_PROFILE.name}
+                    Conta autenticada
                   </p>
                   <p className="text-[10px] text-slate-400 truncate">
-                    {MOCK_USER_PROFILE.role}
+                    Sessão ativa
                   </p>
                 </div>
               )}
@@ -306,10 +304,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="absolute left-3 right-3 bottom-16 bg-slate-800 border border-slate-700 rounded-xl shadow-xl p-1.5 z-50 space-y-1">
               <div className="px-2 py-1.5 border-b border-slate-700/60 mb-1">
                 <p className="text-xs font-semibold text-white">
-                  {MOCK_USER_PROFILE.name}
+                  Conta autenticada
                 </p>
                 <p className="text-[10px] text-slate-400 truncate">
-                  {MOCK_USER_PROFILE.email}
+                  Sessão protegida
                 </p>
               </div>
               <button

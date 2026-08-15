@@ -76,6 +76,157 @@ export type Database = {
           },
         ]
       }
+      ai_conversations: {
+        Row: {
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          organization_id: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          organization_id: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          organization_id?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          organization_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          organization_id: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          organization_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_messages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_usage_logs: {
+        Row: {
+          context_summary: Json
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          feature: string
+          id: string
+          input_tokens: number | null
+          latency_ms: number | null
+          model: string
+          organization_id: string
+          output_tokens: number | null
+          provider: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          context_summary?: Json
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          feature: string
+          id?: string
+          input_tokens?: number | null
+          latency_ms?: number | null
+          model: string
+          organization_id: string
+          output_tokens?: number | null
+          provider: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          context_summary?: Json
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          feature?: string
+          id?: string
+          input_tokens?: number | null
+          latency_ms?: number | null
+          model?: string
+          organization_id?: string
+          output_tokens?: number | null
+          provider?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -755,6 +906,56 @@ export type Database = {
           },
         ]
       }
+      organization_ai_settings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          encrypted_api_key: string
+          id: string
+          key_last_four: string | null
+          model: string
+          organization_id: string
+          provider: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          encrypted_api_key: string
+          id?: string
+          key_last_four?: string | null
+          model: string
+          organization_id: string
+          provider: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          encrypted_api_key?: string
+          id?: string
+          key_last_four?: string | null
+          model?: string
+          organization_id?: string
+          provider?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_ai_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_invites: {
         Row: {
           accepted_at: string | null
@@ -1353,6 +1554,16 @@ export type Database = {
       can_manage_automations: {
         Args: { target_org: string; target_user?: string }
         Returns: boolean
+      }
+      upsert_organization_ai_setting: {
+        Args: {
+          target_encrypted_api_key: string
+          target_key_last_four: string
+          target_model: string
+          target_organization: string
+          target_provider: string
+        }
+        Returns: undefined
       }
       can_manage_members: {
         Args: { target_organization: string; target_user?: string }

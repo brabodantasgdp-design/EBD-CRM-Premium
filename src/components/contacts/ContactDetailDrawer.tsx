@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { CopilotEntityButton } from "../copilot/CopilotEntityButton";
 import {
   X,
   User,
@@ -215,6 +216,7 @@ export const ContactDetailDrawer: React.FC<ContactDetailDrawerProps> = ({
 
           {/* Quick Action Bar */}
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800 text-xs">
+            <CopilotEntityButton entityType="contact" entityId={contact.id} />
             <button
               onClick={() => onEditContact(contact)}
               className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold flex items-center gap-1.5 transition-colors"
