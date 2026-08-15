@@ -67,6 +67,10 @@ export const DealFormModal: React.FC<DealFormModalProps> = ({
       if (!targetPipe) return;
       setPipelineId(targetPipe.id);
       const targetStage = initialStage || targetPipe.stages[0];
+      if (!targetStage) {
+        setStageId("");
+        return;
+      }
       setStageId(targetStage.id);
       setValue("");
       setCompanyId("");

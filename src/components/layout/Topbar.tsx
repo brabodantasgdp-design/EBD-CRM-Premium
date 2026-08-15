@@ -69,29 +69,7 @@ export const Topbar: React.FC<TopbarProps> = ({
     personalizado: "Personalizado",
   };
 
-  const notifications = [
-    {
-      id: "n1",
-      title: "Proposta vencendo",
-      message: "Proposta do Grupo Horizonte vence amanhã (R$ 31.500)",
-      time: "há 10 min",
-      type: "warning",
-    },
-    {
-      id: "n2",
-      title: "Novo lead recebido",
-      message: "Lead 'Diretor de TI - Inova Tech' preencheu formulário",
-      time: "há 25 min",
-      type: "info",
-    },
-    {
-      id: "n3",
-      title: "Negócio ganho!",
-      message: "Camila Rocha fechou 'Projeto Nexora' (R$ 62.000)",
-      time: "há 1 h",
-      type: "success",
-    },
-  ];
+  const notifications: Array<{ id: string; title: string; message: string; time: string }> = [];
 
   return (
     <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 py-3 transition-all">
@@ -302,7 +280,7 @@ export const Topbar: React.FC<TopbarProps> = ({
               <div className="absolute right-0 top-11 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl p-3 z-50">
                 <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
                   <span className="text-xs font-bold text-slate-900">
-                    Notificações (3)
+                    Notificações
                   </span>
                   <button
                     onClick={() => setNotificationsOpen(false)}
@@ -313,7 +291,7 @@ export const Topbar: React.FC<TopbarProps> = ({
                 </div>
 
                 <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
-                  {notifications.map((n) => (
+                  {notifications.length === 0 ? <p className="px-2 py-4 text-center text-xs text-slate-500">Nenhuma notificacao nova.</p> : notifications.map((n) => (
                     <div
                       key={n.id}
                       className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100/80 transition-colors border border-slate-100 text-left"

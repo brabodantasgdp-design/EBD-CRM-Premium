@@ -38,7 +38,7 @@ export const DealsPage: React.FC<DealsPageProps> = ({
   const { deals, companies, contacts, pipelines, addDeal, updateDeal, moveDealStage, markDealWon, markDealLost, reopenDeal, archiveDeal, bulkArchiveDeals, members } = useCRM();
   const commercialPersistence = hasSupabaseConfiguration();
   const ownerOptions = commercialPersistence ? members : AVAILABLE_OWNERS;
-  const realPipelines = useMemo<PipelineConfig[]>(() => pipelines.map((pipeline) => ({ id: pipeline.id, name: pipeline.name, description: pipeline.description || "", isDefault: pipeline.isDefault, stages: pipeline.stages.map((stage) => ({ id: stage.id, pipelineId: stage.pipelineId, name: stage.name, order: stage.position + 1, probability: stage.probability, color: stage.color || "slate" })) })), [pipelines]);
+  const realPipelines = useMemo<PipelineConfig[]>(() => pipelines.map((pipeline) => ({ id: pipeline.id, name: pipeline.name, description: pipeline.description || "", isDefault: pipeline.isDefault, stages: (pipeline.stages ?? []).map((stage) => ({ id: stage.id, pipelineId: stage.pipelineId, name: stage.name, order: stage.position + 1, probability: stage.probability, color: stage.color || "slate" })) })), [pipelines]);
 
   // Active Pipeline & View Mode
   const [activePipeline, setActivePipeline] = useState<PipelineConfig>(
