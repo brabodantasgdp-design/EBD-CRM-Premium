@@ -28,7 +28,7 @@ with sync_playwright() as p:
     )
     page = context.new_page()
     page.on('console', lambda msg: report['errors'].append({'type': 'console'}) if msg.type == 'error' else None)
-    page.on('pageerror', lambda error: report['errors'].append({'type': 'pageerror'}))
+    page.on('pageerror', lambda error: report['errors'].append({'type': 'pageerror', 'route': page.url.rsplit('/', 1)[-1], 'message': str(error)[:240], 'stack': (error.stack or '')[:500]}))
     page.goto(base + '/login', wait_until='domcontentloaded', timeout=30000)
     page.locator('input[type="email"]').wait_for(state='visible', timeout=30000)
     page.locator('input[type="email"]').fill(email)
@@ -59,6 +59,8 @@ with sync_playwright() as p:
             'demo_text_visible': found_forbidden,
             'overflow': page.evaluate('document.documentElement.scrollWidth > window.innerWidth'),
         }
+        if route == '/negocios':
+            report['routes'][route]['pipeline_api'] = page.evaluate("""async () => { const response = await fetch('/api/commercial/pipelines', { cache: 'no-store' }); const body = await response.json(); return { status: response.status, pipelineCount: Array.isArray(body.pipelines) ? body.pipelines.length : 0, stageCounts: Array.isArray(body.pipelines) ? body.pipelines.map((pipeline) => Array.isArray(pipeline.stages) ? pipeline.stages.length : -1) : [], stageShapes: Array.isArray(body.pipelines) ? body.pipelines.flatMap((pipeline) => (pipeline.stages || []).map((stage) => ({ hasId: Boolean(stage && stage.id), keys: stage && typeof stage === 'object' ? Object.keys(stage).sort() : [] }))) : [] }; }""")
     browser.close()
 
 print(json.dumps(report, ensure_ascii=False, indent=2))

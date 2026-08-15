@@ -281,6 +281,10 @@ export const DealsPage: React.FC<DealsPageProps> = ({
     setSelectedDealIds([]);
   };
 
+  if (commercialPersistence && !realPipelines.length) {
+    return <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center"><h1 className="text-xl font-black text-slate-900">Nenhum pipeline disponível</h1><p className="mt-2 text-sm text-slate-500">Os pipelines reais da organização ainda estão carregando ou não foram configurados.</p></section>;
+  }
+
   return (
     <div className="space-y-6 pb-12">
       {/* 1. Header with Title, Pipeline Selector & Primary Actions */}
