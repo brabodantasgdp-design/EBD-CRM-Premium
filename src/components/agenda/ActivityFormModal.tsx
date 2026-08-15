@@ -43,8 +43,9 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
   onClose,
   onSave,
 }) => {
-  const { contacts, companies, deals, members } = useCRM();
+  const { leads, contacts, companies, deals, members } = useCRM();
   const ownerOptions = hasSupabaseConfiguration() ? members : MOCK_TASK_OWNERS;
+  const leadOptions = leads.filter((lead) => !lead.archivedAt && !lead.archived);
 
   const [type, setType] = useState<"call" | "meeting" | "email" | "follow_up" | "note">("meeting");
   const [title, setTitle] = useState("");
@@ -60,12 +61,6 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
   const [entityId, setEntityId] = useState("");
   const [entityName, setEntityName] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
-
-  const mockLeadsOptions = [
-    { id: "lead-1", name: "Carlos Silva (Silva Consultoria)" },
-    { id: "lead-2", name: "Fernanda Lima (Inova Tech)" },
-    { id: "lead-3", name: "Marcos Oliveira (Logística Brasil)" },
-  ];
 
   useEffect(() => {
     if (activityToEdit) {
@@ -144,8 +139,8 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
       const dl = deals.find((d) => d.id === id);
       setEntityName(dl ? dl.name : "");
     } else if (entityType === "lead") {
-      const ld = mockLeadsOptions.find((l) => l.id === id);
-      setEntityName(ld ? ld.name : "");
+      const lead = leadOptions.find((item) => item.id === id);
+      setEntityName(lead ? `${lead.name}${lead.companyName ? ` (${lead.companyName})` : ""}` : "");
     }
   };
 
@@ -454,11 +449,13 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
                     onChange={(e) => handleEntitySelection(e.target.value)}
                     className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
-                    <option value="">Selecione...</option>
+                    <option value="" disabled={entityType === "lead" && leadOptions.length === 0}>
+                      {entityType === "lead" && leadOptions.length === 0 ? "Nenhum Lead ativo" : "Selecione..."}
+                    </option>
                     {entityType === "lead" &&
-                      mockLeadsOptions.map((l) => (
-                        <option key={l.id} value={l.id}>
-                          {l.name}
+                      leadOptions.map((lead) => (
+                        <option key={lead.id} value={lead.id}>
+                          {lead.name}{lead.companyName ? ` (${lead.companyName})` : ""}
                         </option>
                       ))}
 
