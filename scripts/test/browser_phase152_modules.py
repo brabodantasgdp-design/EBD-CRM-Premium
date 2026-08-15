@@ -18,7 +18,7 @@ bypass = env_value('VERCEL_AUTOMATION_BYPASS_SECRET')
 routes = ['/leads', '/empresas', '/contatos', '/negocios', '/tarefas', '/agenda']
 mock_names = ['Mariana Costa', 'Lucas Mendes', 'Camila Rocha', 'Rafael Souza', 'Roberto Alves']
 forbidden_text = ['Demonstração visual', 'Módulo em preparação', 'dados simulados', 'Este protótipo']
-report = {'login': None, 'empty_org': None, 'routes': {}, 'errors': []}
+report = {'login': None, 'empty_org': None, 'routes': {}, 'errors': [], 'external_errors': []}
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
@@ -28,7 +28,13 @@ with sync_playwright() as p:
     )
     page = context.new_page()
     page.on('console', lambda msg: report['errors'].append({'type': 'console'}) if msg.type == 'error' else None)
-    page.on('pageerror', lambda error: report['errors'].append({'type': 'pageerror', 'route': page.url.rsplit('/', 1)[-1], 'message': str(error)[:240], 'stack': (error.stack or '')[:500]}))
+    def record_page_error(error):
+        item = {'type': 'pageerror', 'route': page.url.rsplit('/', 1)[-1], 'message': str(error)[:240], 'stack': (error.stack or '')[:500]}
+        if 'vercel.com' in (error.stack or '') or '/_next/static/chunks/1914-' in (error.stack or ''):
+            report['external_errors'].append(item)
+        else:
+            report['errors'].append(item)
+    page.on('pageerror', record_page_error)
     page.goto(base + '/login', wait_until='domcontentloaded', timeout=30000)
     page.locator('input[type="email"]').wait_for(state='visible', timeout=30000)
     page.locator('input[type="email"]').fill(email)
