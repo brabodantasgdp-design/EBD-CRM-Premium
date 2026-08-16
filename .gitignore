@@ -16,5 +16,6 @@ test-results/
 *.local
 *.tmp
 *.temp
+__pycache__/
 nexus-crm---dashboard-executivo.zip
 .vercel

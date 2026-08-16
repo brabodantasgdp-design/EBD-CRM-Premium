@@ -1,6 +1,7 @@
 import json, os, re
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
+from helpers.organization_guard import require_isolated_e2e_organization
 
 BASE = os.environ["E2E_BASE_URL"].rstrip("/")
 def values():
@@ -12,7 +13,7 @@ def values():
         if os.getenv(key): result[key] = os.environ[key]
     return result
 
-v = values(); marker = 'phase121-' + str(os.getpid()); report = {'preview': BASE, 'console': [], 'pageerrors': [], 'server5xx': []}
+v = values(); require_isolated_e2e_organization(v); marker = 'phase121-' + str(os.getpid()); report = {'preview': BASE, 'console': [], 'pageerrors': [], 'server5xx': []}
 def login(ctx, email, password):
     response = ctx.request.post(BASE + '/api/auth/login', form={'email': email, 'password': password, 'next': '/dashboard'})
     if response.status < 200 or response.status >= 300: raise AssertionError(f'login status {response.status}')

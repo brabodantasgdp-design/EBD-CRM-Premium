@@ -1,12 +1,14 @@
 import json, os
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
+from helpers.organization_guard import require_isolated_e2e_organization
 BASE=os.environ['E2E_BASE_URL'].rstrip('/')
 env={}
 for line in Path('.env.local').read_text(encoding='utf-8-sig').splitlines():
     if '=' in line: k,v=line.split('=',1); env[k]=v.strip().strip('"').strip("'")
 for k in ('E2E_VIEWER_A_EMAIL','E2E_VIEWER_A_PASSWORD','E2E_SUSPENDED_A_EMAIL','E2E_SUSPENDED_A_PASSWORD'):
     if os.getenv(k): env[k]=os.environ[k]
+require_isolated_e2e_organization(env)
 marker='phase121b-'+str(os.getpid()); report={'base':BASE,'errors':[],'5xx':[]}
 def login(ctx,email,password):
     r=ctx.request.post(BASE+'/api/auth/login',form={'email':email,'password':password,'next':'/dashboard'})

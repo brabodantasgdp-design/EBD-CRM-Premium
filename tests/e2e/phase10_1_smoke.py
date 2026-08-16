@@ -6,6 +6,7 @@ import urllib.request
 from http.cookies import SimpleCookie
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from helpers.organization_guard import require_isolated_e2e_organization
 
 BASE = os.environ.get("E2E_BASE_URL", "https://crmpro-5qrltjahg-gestao-de-sistema.vercel.app").rstrip("/")
 
@@ -28,7 +29,7 @@ def login(values):
     return cookies
 
 def run():
-    values = env(); report = {"checks": [], "console": [], "pageerrors": [], "server_errors": []}
+    values = env(); require_isolated_e2e_organization(values); report = {"checks": [], "console": [], "pageerrors": [], "server_errors": []}
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True, args=["--no-sandbox"])
         context = browser.new_context(viewport={"width": 1366, "height": 900}, extra_http_headers={"x-vercel-protection-bypass": values["VERCEL_AUTOMATION_BYPASS_SECRET"]})
