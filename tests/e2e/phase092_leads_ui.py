@@ -4,6 +4,7 @@ import re
 import urllib.parse
 from pathlib import Path
 from playwright.sync_api import expect, sync_playwright
+from helpers.organization_guard import require_isolated_e2e_organization
 
 BASE = os.environ.get("E2E_BASE_URL", "https://crmpro-p0llu10nf-gestao-de-sistema.vercel.app").rstrip("/")
 
@@ -38,6 +39,7 @@ def api(page, path, method="GET", payload=None):
 
 def main():
     values = env_values()
+    require_isolated_e2e_organization(values)
     report = {"owner": {}, "viewer": {}, "suspended": {}, "console": [], "pageerrors": [], "network5xx": []}
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True, args=["--no-sandbox"])

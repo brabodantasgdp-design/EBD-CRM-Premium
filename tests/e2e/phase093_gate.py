@@ -2,6 +2,7 @@ import json, os, re
 from pathlib import Path
 from datetime import datetime
 from playwright.sync_api import sync_playwright, expect
+from helpers.organization_guard import require_isolated_e2e_organization
 
 BASE = os.environ.get("E2E_BASE_URL", "").rstrip("/")
 
@@ -26,7 +27,7 @@ def api(context, path, method="GET", body=None):
     return r.status, payload
 
 def main():
-    values = env(); marker = "phase093-" + datetime.now().strftime("%Y%m%d%H%M%S%f")
+    values = env(); require_isolated_e2e_organization(values); marker = "phase093-" + datetime.now().strftime("%Y%m%d%H%M%S%f")
     report = {"marker": marker, "console": [], "pageerrors": [], "5xx": []}
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True, args=["--no-sandbox"])

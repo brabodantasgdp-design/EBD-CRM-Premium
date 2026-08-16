@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from helpers.organization_guard import require_isolated_e2e_organization
 
 
 BASE = os.environ.get("E2E_BASE_URL", "http://127.0.0.1:3000").rstrip("/")
@@ -24,6 +25,7 @@ def first_option(select):
 
 def test_create_deal_ui_persists_real_record():
     env = load_env()
+    require_isolated_e2e_organization(env)
     report = {"login_status": None, "login_error": None, "post_status": None, "post_error": None, "post_payload": None, "created_visible": False, "refresh_visible": False, "errors": []}
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True, args=["--no-sandbox"])

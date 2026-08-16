@@ -2,6 +2,7 @@ import json, os, re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from helpers.organization_guard import require_isolated_e2e_organization
 
 def env_values():
     values = {}
@@ -10,7 +11,7 @@ def env_values():
             key, value = line.split('=', 1); values[key.strip()] = value.strip()
     return values
 
-v = env_values(); base = os.environ.get('PHASE13_BASE', 'https://crmpro-p0q0ed8ju-gestao-de-sistema.vercel.app'); bypass = v['VERCEL_AUTOMATION_BYPASS_SECRET']; report = {}
+v = env_values(); require_isolated_e2e_organization(v); base = os.environ.get('PHASE13_BASE', 'https://crmpro-p0q0ed8ju-gestao-de-sistema.vercel.app'); bypass = v['VERCEL_AUTOMATION_BYPASS_SECRET']; report = {}
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
     for width in (390, 1366):

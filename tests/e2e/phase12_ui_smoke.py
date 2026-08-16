@@ -1,6 +1,9 @@
 import os
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from helpers.organization_guard import require_isolated_e2e_organization
+
+require_isolated_e2e_organization({"E2E_ORGANIZATION_ID": os.getenv("E2E_ORGANIZATION_ID")})
 
 def env(name):
     for line in Path('.env.local').read_text(encoding='utf-8-sig').splitlines():
