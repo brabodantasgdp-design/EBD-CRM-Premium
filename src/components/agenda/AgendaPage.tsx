@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Calendar as CalendarIcon,
   Plus,
@@ -34,11 +34,13 @@ import { hasSupabaseConfiguration } from "../../lib/supabase/env";
 interface AgendaPageProps {
   onShowToast: (msg: string) => void;
   onNavigateToEntity?: (type: string, id: string) => void;
+  initialDate?: string;
 }
 
 export const AgendaPage: React.FC<AgendaPageProps> = ({
   onShowToast,
   onNavigateToEntity,
+  initialDate,
 }) => {
   const {
     activities,
@@ -59,9 +61,17 @@ export const AgendaPage: React.FC<AgendaPageProps> = ({
 
   // Selected reference date
   const [currentDate, setCurrentDate] = useState<Date>(() => {
-    const [year, month, day] = getLocalDateString().split("-").map(Number);
+    const [year, month, day] = (initialDate || getLocalDateString()).split("-").map(Number);
     return new Date(year, month - 1, day);
   });
+
+  useEffect(() => {
+    const [year, month, day] = getLocalDateString().split("-").map(Number);
+    setCurrentDate((previous) => {
+      if (previous.getFullYear() === year && previous.getMonth() === month - 1 && previous.getDate() === day) return previous;
+      return new Date(year, month - 1, day);
+    });
+  }, [initialDate]);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");

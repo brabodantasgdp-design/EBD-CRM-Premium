@@ -37,7 +37,7 @@ import { PeriodOption, UIStateMode } from "./types/crm";
 import type { DashboardMetricsSnapshot } from "./lib/crm/dashboard/metrics";
 import { Info } from "lucide-react";
 
-export function AppContent({ module = "dashboard" }: { module?: string }) {
+export function AppContent({ module = "dashboard", initialAgendaDate }: { module?: string; initialAgendaDate?: string }) {
   const router = useRouter();
   const { leads } = useCRM();
   const [currentPeriod, setCurrentPeriod] = useState<PeriodOption>("este_mes");
@@ -197,6 +197,7 @@ export function AppContent({ module = "dashboard" }: { module?: string }) {
           ) : module === "agenda" ? (
             <AgendaPage
               onShowToast={(msg) => showToast(msg)}
+              initialDate={initialAgendaDate}
               onNavigateToEntity={(type) => {
                 if (type === "deal") navigateTo("negocios");
                 else if (type === "contact") navigateTo("contatos");
