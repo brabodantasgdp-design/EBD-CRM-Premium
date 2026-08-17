@@ -1,2 +1,6 @@
 import { AppContent } from "../../../App";
-export default function AgendaPage() { return <AppContent module="agenda" />; }
+import { getLocalDateString } from "../../../utils/formatters";
+
+export default function AgendaPage() {
+  return <AppContent module="agenda" initialAgendaDate={getLocalDateString()} />;
+}
